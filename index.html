@@ -6,68 +6,68 @@
 <title>SAMP Chat</title>
 <style>
   :root {
-    --bg-main: #212121;
-    --bg-sidebar: #171717;
-    --bg-input: #2f2f2f;
-    --text-main: #ececec;
-    --text-muted: #b4b4b4;
-    --border: #383838;
-    --accent: #10a37f;
-    --accent-hover: #1a7f64;
-    --user-bubble: #2f2f2f;
-    --code-bg: #0d1117;
+    --bg-main: #0b0f19;
+    --bg-sidebar: #0f1423;
+    --bg-panel: #151c2c;
+    --bg-input: #1a2235;
+    --text-main: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --user-bubble: #1e293b;
+    --code-bg: #0f172a;
+    --success: #10b981;
+    --error: #ef4444;
   }
 
   * { box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; overflow: hidden; }
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; overflow: hidden; }
 
   /* Сайдбар */
-  .sidebar { width: 260px; flex-shrink: 0; background: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); transition: transform 0.3s; }
-  .new-chat-btn { margin: 16px; padding: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
-  .new-chat-btn:hover { background: var(--bg-input); }
+  .sidebar { width: 260px; flex-shrink: 0; background: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+  .new-chat-btn { margin: 16px; padding: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+  .new-chat-btn:hover { background: var(--bg-input); border-color: var(--accent); }
   .chat-history { flex: 1; overflow-y: auto; padding: 0 16px; }
-  .history-item { padding: 10px 12px; border-radius: 6px; font-size: 14px; color: var(--text-main); cursor: pointer; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s; }
+  .history-item { padding: 10px 12px; border-radius: 6px; font-size: 14px; color: var(--text-main); cursor: pointer; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: 0.2s; }
   .history-item:hover, .history-item.active { background: var(--bg-input); }
-  .history-item.active { font-weight: 600; }
+  .history-item.active { font-weight: 600; border-left: 3px solid var(--accent); }
   .sidebar-footer { padding: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   /* Основная часть */
-  .main-content { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; height: 100%; }
+  .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; }
   .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth; }
   .chat-inner { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
 
   /* Сообщения */
   .message { display: flex; flex-direction: column; line-height: 1.6; font-size: 16px; animation: fadeIn 0.3s ease; }
   .message.user { align-items: flex-end; }
-  .message.user .bubble { background: var(--user-bubble); padding: 12px 20px; border-radius: 20px; border-bottom-right-radius: 4px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
+  .message.user .bubble { background: var(--user-bubble); padding: 12px 20px; border-radius: 20px; border-bottom-right-radius: 4px; max-width: 85%; white-space: pre-wrap; }
   .message.assistant { align-items: flex-start; }
   .message.assistant .bubble { width: 100%; word-wrap: break-word; }
-  .message.assistant .bubble p { margin: 0 0 10px 0; }
-  .message.assistant .bubble p:last-child { margin-bottom: 0; }
   .message img { max-width: 100%; max-height: 300px; border-radius: 8px; margin-bottom: 8px; display: block; }
 
   /* Блок размышлений */
-  details.thought-box { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
-  details.thought-box summary { padding: 10px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; outline: none; }
-  details.thought-box summary:hover { color: var(--text-main); }
+  details.thought-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  details.thought-box summary { padding: 10px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; }
   details.thought-box .thought-content { padding: 14px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); font-family: monospace; white-space: pre-wrap; }
 
   /* Блоки кода */
   .code-block { background: var(--code-bg); border-radius: 8px; overflow: hidden; margin: 12px 0; border: 1px solid var(--border); }
-  .code-header { display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 8px 14px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .code-header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 14px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
   .copy-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; }
   .copy-btn:hover { background: var(--bg-input); color: var(--text-main); }
-  .code-block pre { margin: 0; padding: 14px; overflow-x: auto; color: #e6edf3; font-family: monospace; font-size: 14px; }
+  .code-block pre { margin: 0; padding: 14px; overflow-x: auto; color: #e2e8f0; font-family: monospace; font-size: 14px; }
   code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; font-size: 14px; }
 
   /* Поле ввода */
   .input-wrapper { padding: 20px; background: linear-gradient(transparent, var(--bg-main) 20%); }
-  .input-box { width: 100%; max-width: 800px; margin: 0 auto; background: var(--bg-input); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.1); transition: border-color 0.2s; }
-  .input-box:focus-within { border-color: #555; }
+  .input-box { width: 100%; max-width: 800px; margin: 0 auto; background: var(--bg-input); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.3); transition: 0.2s; }
+  .input-box:focus-within { border-color: var(--accent); }
   
   .image-preview { display: none; margin-bottom: 10px; position: relative; width: max-content; }
   .image-preview img { height: 60px; border-radius: 6px; border: 1px solid var(--border); }
-  .remove-img { position: absolute; top: -6px; right: -6px; background: #ff4a4a; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .remove-img { position: absolute; top: -6px; right: -6px; background: var(--error); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; }
 
   .input-row { display: flex; align-items: flex-end; gap: 10px; }
   textarea { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 16px; resize: none; outline: none; min-height: 24px; max-height: 200px; padding: 4px 0; font-family: inherit; }
@@ -75,38 +75,41 @@
   .tools { display: flex; align-items: center; gap: 8px; margin-top: 10px; justify-content: space-between; }
   .left-tools { display: flex; align-items: center; gap: 8px; }
   
-  .icon-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
-  .icon-btn:hover { background: #404040; color: var(--text-main); }
+  .icon-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 8px; transition: 0.2s; }
+  .icon-btn:hover { background: #1e293b; color: var(--accent); }
   
-  .toggle-btn { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-  .toggle-btn.active { background: rgba(16, 163, 127, 0.15); border-color: var(--accent); color: var(--accent); }
+  .toggle-btn { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+  .toggle-btn:hover { background: #1e293b; }
+  .toggle-btn.think.active { background: rgba(59, 130, 246, 0.15); border-color: var(--accent); color: var(--accent); }
+  .toggle-btn.search.active { background: rgba(16, 185, 129, 0.15); border-color: var(--success); color: var(--success); }
 
-  .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+  .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
-  .send-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+  .send-btn:disabled { background: #1e293b; color: #475569; cursor: not-allowed; }
 
-  /* Красивый селектор */
-  .select-wrapper { position: relative; display: inline-block; }
-  select { appearance: none; -webkit-appearance: none; background-color: transparent; border: 1px solid transparent; color: var(--text-muted); font-size: 13px; outline: none; cursor: pointer; padding: 6px 28px 6px 10px; border-radius: 8px; transition: all 0.2s; }
-  select:hover { background-color: #404040; color: var(--text-main); }
-  select:focus { border-color: #555; color: var(--text-main); }
-  select option { background-color: var(--bg-main); color: var(--text-main); padding: 8px; }
-  .select-wrapper::after { content: "▼"; font-size: 9px; color: var(--text-muted); position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  /* Кастомный выпадающий список моделей */
+  .model-selector { position: relative; }
+  .model-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid transparent; color: var(--text-muted); font-size: 13px; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+  .model-btn:hover { background: #1e293b; color: var(--text-main); }
+  .model-menu { position: absolute; bottom: 100%; right: 0; margin-bottom: 8px; width: 300px; max-height: 400px; overflow-y: auto; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: none; flex-direction: column; padding: 8px; z-index: 100; }
+  .model-menu.show { display: flex; }
+  .model-group-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; padding: 8px 10px 4px; letter-spacing: 0.5px; }
+  .model-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-main); }
+  .model-item:hover { background: var(--bg-input); }
+  .model-item.active { background: rgba(59, 130, 246, 0.1); color: var(--accent); }
+  .status-icon { font-size: 12px; margin-left: 8px; }
 
   /* Анимации */
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .typing-cursor::after { content: "▋"; animation: blinkCursor 1s infinite; color: var(--text-main); margin-left: 2px; }
-  @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .typing-cursor::after { content: "▋"; animation: blink 1s infinite; color: var(--accent); margin-left: 2px; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--text-muted); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
 
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #555; }
-  
-  @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .chat-inner, .input-box { max-width: 100%; padding: 10px; }
-  }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
 </style>
 </head>
 <body>
@@ -125,7 +128,7 @@
       <div class="chat-inner" id="chatInner">
         <div style="text-align: center; margin-top: 15vh; color: var(--text-muted);" id="welcomeScreen">
           <h1 style="font-size: 32px; color: var(--text-main); margin-bottom: 8px;">Чем я могу помочь?</h1>
-          <p>Введите сообщение или загрузите изображение.</p>
+          <p>Выберите модель в настройках и напишите сообщение.</p>
         </div>
       </div>
     </div>
@@ -149,19 +152,23 @@
             </button>
             <input type="file" id="fileInput" accept="image/*" hidden>
             
-            <button class="toggle-btn" id="thinkToggle">
+            <button class="toggle-btn think" id="thinkToggle" title="Модель будет рассуждать перед ответом">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12"></path><path d="M12 12 12 2"></path></svg>
               Раздумие
             </button>
+            
+            <button class="toggle-btn search" id="searchToggle" title="Добавить поиск в интернете">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              Поиск
+            </button>
           </div>
           
-          <div class="select-wrapper">
-            <select id="modelSelect">
-              <option value="deepseek-v4-pro">deepseek-v4-pro</option>
-              <option value="deepseek-v4.1-flash" selected>deepseek-v4.1-flash</option>
-              <option value="qwen3.8-omni-flash">qwen3.8-omni-flash</option>
-              <option value="glm-5.3">glm-5.3</option>
-            </select>
+          <div class="model-selector" id="modelSelector">
+            <button class="model-btn" id="modelBtn">
+              <span id="currentModelName">qwen3.8-omni-flash</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="model-menu" id="modelMenu"></div>
           </div>
         </div>
       </div>
@@ -170,24 +177,43 @@
 
 <script>
   const API_URL = "/api/messages";
+  
+  // --- СПИСОК МОДЕЛЕЙ ---
+  const MODELS = {
+    "Tier C": [
+      "qwen3.8-omni-flash", "deepseek-v4-pro", "deepseek-v4.1-flash", "glm-5.3", 
+      "glm-5.3-flash", "glm-5.3-prime", "kimi-k3", "deepseek-v4.1-flash-1017"
+    ],
+    "Tier B": [
+      "gemini-4-argon", "gemini-4-carbon", "gpt-6-luna", "gpt-6.1-sol", 
+      "gpt-6-sol", "kimi-k3.1-pro", "deepseek-v4.1-flash-uncensored", 
+      "glm-5.3-uncensored", "glm-5.3-flash-uncensored"
+    ],
+    "Tier A": [
+      "claude-opus-5-5", "claude-opus-5", "gpt-6-astra"
+    ]
+  };
+
   let currentChatId = Date.now().toString();
   let chats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
   let currentMessages = [];
   let isBusy = false;
   let useThink = false;
+  let useSearch = false;
   let attachedImage = null; 
+  let selectedModel = "qwen3.8-omni-flash";
+  let modelStatuses = {}; // Сюда сохраняем результаты пинга
 
   const $ = id => document.getElementById(id);
   const chatHistory = $("chatHistory"), chatInner = $("chatInner"), input = $("input");
   const sendBtn = $("sendBtn"), welcomeScreen = $("welcomeScreen");
-  const fileInput = $("fileInput"), imagePreview = $("imagePreview"), previewImg = $("previewImg");
-  const chatContainer = $("chatContainer");
+  const chatContainer = $("chatContainer"), imagePreview = $("imagePreview"), previewImg = $("previewImg");
+  const modelMenu = $("modelMenu"), modelBtn = $("modelBtn"), currentModelName = $("currentModelName");
 
   // --- ПАРСИНГ MARKDOWN ---
   function parseMarkdown(text) {
     if (!text) return "";
     let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    // Закрываем блок кода, если он еще не закрыт (для стриминга)
     safe = safe.replace(/```(\w*)\n([\s\S]*?)(?:```|$)/g, (match, lang, code) => {
       return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn">Copy</button></div><pre><code>${code}</code></pre></div>`;
     });
@@ -232,7 +258,7 @@
     welcomeScreen.style.display = "none";
     currentMessages.forEach(msg => renderMessage(msg.role, msg.content, msg.thought, false, true));
     renderHistory();
-    scrollToBottom();
+    scrollToBottom(true);
   }
 
   function startNewChat() {
@@ -268,7 +294,7 @@
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.innerHTML = parseMarkdown(content);
-      if (isError) bubble.style.color = "#ff6b6b";
+      if (isError) bubble.style.color = "#ef4444";
       html += bubble.outerHTML;
     }
 
@@ -277,15 +303,94 @@
     if (!isHistory) scrollToBottom();
   }
 
-  function scrollToBottom() {
-    // Автоскролл только если пользователь находится внизу
+  // --- УМНЫЙ АВТОСКРОЛЛ ---
+  function scrollToBottom(force = false) {
+    // Если пользователь специально прокрутил вверх, мы не дергаем экран, 
+    // пока он не вернется вниз (проверяем, находится ли он в пределах 150px от низа)
     const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
-    if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    if (force || isNearBottom) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
   }
 
+  // --- РАБОТА С МОДЕЛЯМИ И АВТО-ПИНГОМ ---
+  function renderModelsMenu() {
+    modelMenu.innerHTML = "";
+    for (const [tier, models] of Object.entries(MODELS)) {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "model-group-title";
+      groupDiv.textContent = tier;
+      modelMenu.appendChild(groupDiv);
+
+      models.forEach(m => {
+        const item = document.createElement("div");
+        item.className = `model-item ${m === selectedModel ? 'active' : ''}`;
+        
+        let statusHtml = `<span class="status-icon" id="status-${m}"></span>`;
+        if (modelStatuses[m] === 'ok') statusHtml = `<span class="status-icon" style="color:var(--success)">✅</span>`;
+        if (modelStatuses[m] === 'error') statusHtml = `<span class="status-icon" style="color:var(--error)">❌</span>`;
+
+        item.innerHTML = `<span>${m}</span> ${statusHtml}`;
+        item.onclick = () => {
+          selectedModel = m;
+          currentModelName.textContent = m;
+          modelMenu.classList.remove("show");
+          renderModelsMenu();
+        };
+        modelMenu.appendChild(item);
+      });
+    }
+  }
+
+  async function pingAllModels() {
+    // Если уже проверяли, не спамим запросами
+    if (Object.keys(modelStatuses).length > 0) return;
+
+    const allModels = Object.values(MODELS).flat();
+    allModels.forEach(m => {
+      const el = $(`status-${m}`);
+      if (el) el.innerHTML = `<div class="spinner"></div>`;
+    });
+
+    // Параллельный пинг
+    await Promise.allSettled(allModels.map(async (m) => {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] })
+        });
+        if (res.ok) modelStatuses[m] = 'ok';
+        else modelStatuses[m] = 'error';
+      } catch (e) {
+        modelStatuses[m] = 'error';
+      }
+      const el = $(`status-${m}`);
+      if (el) {
+        if (modelStatuses[m] === 'ok') { el.innerHTML = `✅`; el.style.color = "var(--success)"; }
+        else { el.innerHTML = `❌`; el.style.color = "var(--error)"; }
+      }
+    }));
+  }
+
+  modelBtn.onclick = (e) => {
+    e.stopPropagation();
+    modelMenu.classList.toggle("show");
+    if (modelMenu.classList.contains("show")) {
+      pingAllModels(); // Запускаем проверку при открытии
+    }
+  };
+
+  document.addEventListener("click", (e) => {
+    if (!modelBtn.contains(e.target) && !modelMenu.contains(e.target)) {
+      modelMenu.classList.remove("show");
+    }
+  });
+
   // --- ИЗОБРАЖЕНИЯ ---
-  $("attachBtn").onclick = () => fileInput.click();
-  fileInput.onchange = (e) => {
+  $("attachBtn").onclick = () => $("fileInput").click();
+  $("fileInput").onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -301,7 +406,7 @@
 
   function removeImage() {
     attachedImage = null;
-    fileInput.value = "";
+    $("fileInput").value = "";
     imagePreview.style.display = "none";
     sendBtn.disabled = input.value.trim() === "";
   }
@@ -325,7 +430,12 @@
     e.currentTarget.classList.toggle("active", useThink);
   };
 
-  // --- ОТПРАВКА И СТРИМИНГ ---
+  $("searchToggle").onclick = (e) => {
+    useSearch = !useSearch;
+    e.currentTarget.classList.toggle("active", useSearch);
+  };
+
+  // --- СТРИМИНГ И ОТПРАВКА ---
   async function sendMessage() {
     const text = input.value.trim();
     if ((!text && !attachedImage) || isBusy) return;
@@ -359,18 +469,22 @@
     bubble.innerHTML = '<span class="typing-cursor"></span>';
     msgDiv.appendChild(bubble);
     chatInner.appendChild(msgDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    scrollToBottom(true);
 
+    // Формируем системный промпт
     let systemPrompt = "";
     if (useThink) {
-      systemPrompt = "Перед ответом подумай шаг за шагом. Обязательно оберни размышления в теги <thought>...</thought>, а сам ответ пиши после них.";
+      systemPrompt += "Перед ответом подумай шаг за шагом. Обязательно оберни размышления в теги <thought>...</thought>, а сам ответ пиши после них. ";
+    }
+    if (useSearch) {
+      systemPrompt += "Используй свои знания для поиска актуальной информации в интернете. Если найдешь данные, сошлись на источники. ";
     }
 
     const payload = {
-      model: $("modelSelect").value,
+      model: selectedModel,
       max_tokens: 4096,
       messages: currentMessages.map(m => ({ role: m.role, content: m.content })),
-      stream: true // ВКЛЮЧАЕМ СТРИМИНГ!
+      stream: true
     };
     if (systemPrompt) payload.system = systemPrompt;
 
@@ -397,7 +511,7 @@
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
-        buffer = lines.pop(); // Оставляем неполную строку
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
@@ -408,7 +522,6 @@
               if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
                 fullText += parsed.delta.text;
                 
-                // Обрабатываем размышления на лету (если тег еще не закрыт)
                 let thought = null;
                 let answer = fullText;
                 const match = fullText.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/);
@@ -417,24 +530,23 @@
                   answer = fullText.replace(match[0], "").trim();
                 }
 
-                // Обновляем DOM
                 let html = "";
                 if (thought) {
                    html += `<details class="thought-box" open><summary>🤔 Размышляет...</summary><div class="thought-content">${thought}</div></details>`;
                 }
                 html += parseMarkdown(answer);
                 bubble.innerHTML = html + '<span class="typing-cursor"></span>';
+                
+                // АВТОСКРОЛЛ В РЕАЛЬНОМ ВРЕМЕНИ
                 scrollToBottom();
               }
-            } catch(e) { /* Игнорируем битые куски JSON */ }
+            } catch(e) {}
           }
         }
       }
 
-      // Убираем курсор в конце
       bubble.innerHTML = bubble.innerHTML.replace('<span class="typing-cursor"></span>', '');
       
-      // Сохраняем в историю
       let finalThought = null;
       let finalAnswer = fullText;
       const match = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
@@ -453,13 +565,15 @@
       saveChats();
 
     } catch (err) {
-      bubble.innerHTML = `<span style="color: #ff6b6b;">Ошибка: ${err.message}</span>`;
+      bubble.innerHTML = `<span style="color: var(--error);">Ошибка: ${err.message}</span>`;
     } finally {
       isBusy = false;
       sendBtn.disabled = input.value.trim() === "";
     }
   }
 
+  // Инициализация
+  renderModelsMenu();
   renderHistory();
   if (Object.keys(chats).length > 0) {
     loadChat(Object.keys(chats).sort((a,b) => b - a)[0]);
