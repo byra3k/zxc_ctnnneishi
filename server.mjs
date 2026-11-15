@@ -7,7 +7,6 @@ const TARGET = "https://api.samp.team/v1/messages";
 const API_KEY = process.env.API_KEY;
 const USERS_FILE = path.join(process.cwd(), "users.json");
 
-// Начальный админ
 let users = {
   "byra3k": { password: "lubitel_jivotnih", email: "", isAdmin: true, limit: 9999, blocked: false }
 };
@@ -17,9 +16,7 @@ async function loadUsers() {
     await access(USERS_FILE);
     const data = await readFile(USERS_FILE, "utf-8");
     users = JSON.parse(data);
-  } catch (e) {
-    await saveUsers();
-  }
+  } catch (e) { await saveUsers(); }
 }
 
 async function saveUsers() {
@@ -44,13 +41,10 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Этот Username уже занят" }));
         }
-        // Создаем нового пользователя (по умолчанию 10 сообщений)
         users[username] = { password, email: email || "", isAdmin: false, limit: 10, blocked: false };
         await saveUsers();
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ 
-          username, isAdmin: false, limit: 10, blocked: false 
-        }));
+        return res.end(JSON.stringify({ username, isAdmin: false, limit: 10, blocked: false }));
       } 
       
       if (action === "login") {
@@ -60,9 +54,7 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ error: "Неверный логин или пароль" }));
         }
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ 
-          username, isAdmin: user.isAdmin, limit: user.limit, blocked: user.blocked
-        }));
+        return res.end(JSON.stringify({ username, isAdmin: user.isAdmin, limit: user.limit, blocked: user.blocked }));
       }
     });
     return;
@@ -90,7 +82,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- ПРОКСИ ЧАТА ---
+  // --- ПРОКСИ ЧАТА С ОТМЕНОЙ ---
   if (req.method === "POST" && req.url === "/api/messages") {
     const username = req.headers["x-user"];
     const user = users[username];
@@ -114,6 +106,12 @@ const server = http.createServer(async (req, res) => {
           await saveUsers();
         }
 
+        // Создаем контроллер для отмены запроса к API, если клиент отключится
+        const controller = new AbortController();
+        req.on("close", () => {
+          controller.abort(); // Клиент нажал "Стоп" или закрыл вкладку
+        });
+
         const upstream = await fetch(TARGET, {
           method: "POST",
           headers: { 
@@ -121,7 +119,8 @@ const server = http.createServer(async (req, res) => {
             "x-api-key": API_KEY, 
             "anthropic-version": "2023-06-01" 
           },
-          body
+          body,
+          signal: controller.signal
         });
 
         res.writeHead(upstream.status, { 
@@ -135,6 +134,7 @@ const server = http.createServer(async (req, res) => {
         }
         res.end();
       } catch (err) {
+        if (err.name === 'AbortError') return; // Запрос был отменен, ничего не делаем
         res.writeHead(502, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: { message: "Proxy error: " + err.message } }));
       }
