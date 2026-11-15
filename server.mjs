@@ -22,14 +22,12 @@ const server = http.createServer(async (req, res) => {
           body
         });
 
-        // Передаем заголовки от API (важно для стриминга)
         res.writeHead(upstream.status, { 
           "Content-Type": upstream.headers.get("content-type") || "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive"
         });
 
-        // Читаем поток от API и сразу отправляем в браузер
         for await (const chunk of upstream.body) {
           res.write(chunk);
         }
