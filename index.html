@@ -33,6 +33,7 @@
   .history-item:hover, .history-item.active { background: var(--bg-input); }
   .history-item.active { font-weight: 600; border-left: 3px solid var(--accent); }
   .sidebar-footer { padding: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
+  .version-tag { display: block; font-size: 10px; color: var(--accent); margin-top: 4px; }
 
   /* Основная часть */
   .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; }
@@ -120,7 +121,10 @@
       Новый чат
     </button>
     <div class="chat-history" id="chatHistory"></div>
-    <div class="sidebar-footer">SAMP AI • 2026</div>
+    <div class="sidebar-footer">
+      SAMP AI • 2026
+      <span class="version-tag">v2.0 (Full)</span>
+    </div>
   </aside>
 
   <main class="main-content">
@@ -178,7 +182,7 @@
 <script>
   const API_URL = "/api/messages";
   
-  // --- СПИСОК МОДЕЛЕЙ ---
+  // --- ВСЕ 17 МОДЕЛЕЙ ---
   const MODELS = {
     "Tier C": [
       "qwen3.8-omni-flash", "deepseek-v4-pro", "deepseek-v4.1-flash", "glm-5.3", 
@@ -202,7 +206,7 @@
   let useSearch = false;
   let attachedImage = null; 
   let selectedModel = "qwen3.8-omni-flash";
-  let modelStatuses = {}; // Сюда сохраняем результаты пинга
+  let modelStatuses = {}; // Кэш пингов
 
   const $ = id => document.getElementById(id);
   const chatHistory = $("chatHistory"), chatInner = $("chatInner"), input = $("input");
@@ -210,7 +214,7 @@
   const chatContainer = $("chatContainer"), imagePreview = $("imagePreview"), previewImg = $("previewImg");
   const modelMenu = $("modelMenu"), modelBtn = $("modelBtn"), currentModelName = $("currentModelName");
 
-  // --- ПАРСИНГ MARKDOWN ---
+  // --- MARKDOWN ---
   function parseMarkdown(text) {
     if (!text) return "";
     let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -232,7 +236,7 @@
     }
   });
 
-  // --- ИСТОРИЯ ЧАТОВ ---
+  // --- ИСТОРИЯ ---
   function saveChats() {
     localStorage.setItem("samp_chats", JSON.stringify(chats));
     renderHistory();
@@ -275,7 +279,7 @@
     renderHistory();
   }
 
-  // --- РЕНДЕР СООБЩЕНИЙ ---
+  // --- РЕНДЕР ---
   function renderMessage(role, content, thought = null, isError = false, isHistory = false) {
     welcomeScreen.style.display = "none";
     const msgDiv = document.createElement("div");
@@ -294,7 +298,7 @@
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.innerHTML = parseMarkdown(content);
-      if (isError) bubble.style.color = "#ef4444";
+      if (isError) bubble.style.color = "var(--error)";
       html += bubble.outerHTML;
     }
 
@@ -303,18 +307,15 @@
     if (!isHistory) scrollToBottom();
   }
 
-  // --- УМНЫЙ АВТОСКРОЛЛ ---
+  // --- УМНЫЙ СКРОЛЛ ---
   function scrollToBottom(force = false) {
-    // Если пользователь специально прокрутил вверх, мы не дергаем экран, 
-    // пока он не вернется вниз (проверяем, находится ли он в пределах 150px от низа)
     const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
-    
     if (force || isNearBottom) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
   }
 
-  // --- РАБОТА С МОДЕЛЯМИ И АВТО-ПИНГОМ ---
+  // --- МОДЕЛИ И ПИНГ ---
   function renderModelsMenu() {
     modelMenu.innerHTML = "";
     for (const [tier, models] of Object.entries(MODELS)) {
@@ -344,8 +345,7 @@
   }
 
   async function pingAllModels() {
-    // Если уже проверяли, не спамим запросами
-    if (Object.keys(modelStatuses).length > 0) return;
+    if (Object.keys(modelStatuses).length > 0) return; // Проверяем только 1 раз
 
     const allModels = Object.values(MODELS).flat();
     allModels.forEach(m => {
@@ -353,24 +353,29 @@
       if (el) el.innerHTML = `<div class="spinner"></div>`;
     });
 
-    // Параллельный пинг
-    await Promise.allSettled(allModels.map(async (m) => {
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] })
-        });
-        if (res.ok) modelStatuses[m] = 'ok';
-        else modelStatuses[m] = 'error';
-      } catch (e) {
-        modelStatuses[m] = 'error';
-      }
-      const el = $(`status-${m}`);
-      if (el) {
-        if (modelStatuses[m] === 'ok') { el.innerHTML = `✅`; el.style.color = "var(--success)"; }
-        else { el.innerHTML = `❌`; el.style.color = "var(--error)"; }
-      }
+    // Запускаем пинг с небольшой задержкой, чтобы не забанить IP
+    await Promise.allSettled(allModels.map(async (m, index) => {
+      return new Promise(resolve => {
+        setTimeout(async () => {
+          try {
+            const res = await fetch(API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] })
+            });
+            if (res.ok) modelStatuses[m] = 'ok';
+            else modelStatuses[m] = 'error';
+          } catch (e) {
+            modelStatuses[m] = 'error';
+          }
+          const el = $(`status-${m}`);
+          if (el) {
+            if (modelStatuses[m] === 'ok') { el.innerHTML = `✅`; el.style.color = "var(--success)"; }
+            else { el.innerHTML = `❌`; el.style.color = "var(--error)"; }
+          }
+          resolve();
+        }, index * 150); // Задержка 150мс между запросами
+      });
     }));
   }
 
@@ -378,7 +383,7 @@
     e.stopPropagation();
     modelMenu.classList.toggle("show");
     if (modelMenu.classList.contains("show")) {
-      pingAllModels(); // Запускаем проверку при открытии
+      pingAllModels();
     }
   };
 
@@ -435,7 +440,7 @@
     e.currentTarget.classList.toggle("active", useSearch);
   };
 
-  // --- СТРИМИНГ И ОТПРАВКА ---
+  // --- ОТПРАВКА И СТРИМИНГ ---
   async function sendMessage() {
     const text = input.value.trim();
     if ((!text && !attachedImage) || isBusy) return;
@@ -461,7 +466,6 @@
     removeImage();
     welcomeScreen.style.display = "none";
 
-    // Создаем пустой пузырь для ответа ИИ
     const msgDiv = document.createElement("div");
     msgDiv.className = "message assistant";
     const bubble = document.createElement("div");
@@ -471,7 +475,6 @@
     chatInner.appendChild(msgDiv);
     scrollToBottom(true);
 
-    // Формируем системный промпт
     let systemPrompt = "";
     if (useThink) {
       systemPrompt += "Перед ответом подумай шаг за шагом. Обязательно оберни размышления в теги <thought>...</thought>, а сам ответ пиши после них. ";
@@ -536,8 +539,6 @@
                 }
                 html += parseMarkdown(answer);
                 bubble.innerHTML = html + '<span class="typing-cursor"></span>';
-                
-                // АВТОСКРОЛЛ В РЕАЛЬНОМ ВРЕМЕНИ
                 scrollToBottom();
               }
             } catch(e) {}
@@ -572,7 +573,7 @@
     }
   }
 
-  // Инициализация
+  // Запуск
   renderModelsMenu();
   renderHistory();
   if (Object.keys(chats).length > 0) {
