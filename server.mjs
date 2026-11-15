@@ -14,19 +14,34 @@ const server = http.createServer(async (req, res) => {
       try {
         const upstream = await fetch(TARGET, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01" },
+          headers: { 
+            "Content-Type": "application/json", 
+            "x-api-key": API_KEY, 
+            "anthropic-version": "2023-06-01" 
+          },
           body
         });
-        const text = await upstream.text();
-        res.writeHead(upstream.status, { "Content-Type": "application/json" });
-        res.end(text);
+
+        // Передаем заголовки от API (важно для стриминга)
+        res.writeHead(upstream.status, { 
+          "Content-Type": upstream.headers.get("content-type") || "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive"
+        });
+
+        // Читаем поток от API и сразу отправляем в браузер
+        for await (const chunk of upstream.body) {
+          res.write(chunk);
+        }
+        res.end();
       } catch (err) {
         res.writeHead(502, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: { message: "Proxy error" } }));
+        res.end(JSON.stringify({ error: { message: "Proxy error: " + err.message } }));
       }
     });
     return;
   }
+
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
     try {
       const html = await readFile(path.join(process.cwd(), "index.html"));
