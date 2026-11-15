@@ -3,71 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DeepSeek Clone</title>
+<title>SAMP Chat</title>
 <style>
-  /* Цветовая палитра в стиле DeepSeek */
   :root {
-    --bg: #1c1d22;
-    --sidebar-bg: #141519;
-    --text-main: #e0e0e0;
-    --text-muted: #888b94;
-    --border: #2d2f36;
-    --input-bg: #25262b;
-    --accent: #4d6bfe;
-    --accent-hover: #5b77ff;
-    --msg-user: #2b2d36;
-    --btn-active: #303342;
-    --think-bg: #202127;
+    --bg-main: #212121;
+    --bg-sidebar: #171717;
+    --bg-input: #2f2f2f;
+    --text-main: #ececec;
+    --text-muted: #b4b4b4;
+    --border: #383838;
+    --accent: #10a37f;
+    --accent-hover: #1a7f64;
+    --user-bubble: #2f2f2f;
+    --code-bg: #0d1117;
   }
 
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text-main); display: flex; overflow: hidden; }
+  html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; overflow: hidden; }
 
   /* Сайдбар */
-  .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px; transition: transform 0.3s ease; }
-  .new-chat-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 20px; transition: background 0.2s; }
-  .new-chat-btn:hover { background: var(--accent-hover); }
-  .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-  .history-item { padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--text-muted); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s; }
-  .history-item:hover { background: var(--input-bg); color: var(--text-main); }
-  .sidebar-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); text-align: center; }
+  .sidebar { width: 260px; background: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); transition: transform 0.3s; }
+  .new-chat-btn { margin: 16px; padding: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
+  .new-chat-btn:hover { background: var(--bg-input); }
+  .chat-history { flex: 1; overflow-y: auto; padding: 0 16px; }
+  .history-item { padding: 10px 12px; border-radius: 6px; font-size: 14px; color: var(--text-main); cursor: pointer; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s; }
+  .history-item:hover, .history-item.active { background: var(--bg-input); }
+  .history-item.active { font-weight: 600; }
+  .sidebar-footer { padding: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
-  /* Основная область */
-  .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
-  .chat-container { flex: 1; overflow-y: auto; padding: 40px 20px 120px 20px; display: flex; flex-direction: column; align-items: center; scroll-behavior: smooth; }
-  .chat-inner { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 24px; }
+  /* Основная часть */
+  .main-content { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
+  .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scroll-behavior: smooth; }
+  .chat-inner { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
 
   /* Сообщения */
   .message { display: flex; flex-direction: column; line-height: 1.6; font-size: 16px; animation: fadeIn 0.3s ease; }
   .message.user { align-items: flex-end; }
-  .message.user .bubble { background: var(--msg-user); padding: 12px 18px; border-radius: 18px; border-bottom-right-radius: 4px; max-width: 80%; }
+  .message.user .bubble { background: var(--user-bubble); padding: 12px 20px; border-radius: 20px; border-bottom-right-radius: 4px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
   .message.assistant { align-items: flex-start; }
-  .message.assistant .bubble { width: 100%; white-space: pre-wrap; word-wrap: break-word; }
-  
+  .message.assistant .bubble { width: 100%; word-wrap: break-word; }
+  .message.assistant .bubble p { margin: 0 0 10px 0; }
+  .message.assistant .bubble p:last-child { margin-bottom: 0; }
+  .message img { max-width: 100%; max-height: 300px; border-radius: 8px; margin-bottom: 8px; display: block; }
+
   /* Блок размышлений */
-  details.thought-box { background: var(--think-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
-  details.thought-box summary { padding: 10px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; outline: none; }
-  details.thought-box summary::-webkit-details-marker { display: none; }
+  details.thought-box { background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  details.thought-box summary { padding: 10px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; outline: none; }
   details.thought-box summary:hover { color: var(--text-main); }
   details.thought-box .thought-content { padding: 14px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--border); font-family: monospace; white-space: pre-wrap; }
 
-  /* Поле ввода (плавающее снизу) */
-  .input-wrapper { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, var(--bg) 40%); padding: 20px; display: flex; flex-direction: column; align-items: center; }
-  .input-box { width: 100%; max-width: 800px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: border-color 0.2s; }
-  .input-box:focus-within { border-color: var(--text-muted); }
-  .input-box textarea { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 16px; resize: none; outline: none; min-height: 24px; max-height: 200px; padding: 4px 0; font-family: inherit; }
-  .input-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .toggles { display: flex; gap: 8px; }
+  /* Блоки кода */
+  .code-block { background: var(--code-bg); border-radius: 8px; overflow: hidden; margin: 12px 0; border: 1px solid var(--border); }
+  .code-header { display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 8px 14px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .copy-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; }
+  .copy-btn:hover { background: var(--bg-input); color: var(--text-main); }
+  .code-block pre { margin: 0; padding: 14px; overflow-x: auto; color: #e6edf3; font-family: monospace; font-size: 14px; }
+  code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; font-size: 14px; }
+
+  /* Поле ввода */
+  .input-wrapper { padding: 20px; background: linear-gradient(transparent, var(--bg-main) 20%); }
+  .input-box { width: 100%; max-width: 800px; margin: 0 auto; background: var(--bg-input); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.1); transition: border-color 0.2s; }
+  .input-box:focus-within { border-color: #555; }
   
-  /* Кнопки-переключатели (Раздумие, Поиск) */
+  .image-preview { display: none; margin-bottom: 10px; position: relative; width: max-content; }
+  .image-preview img { height: 60px; border-radius: 6px; border: 1px solid var(--border); }
+  .remove-img { position: absolute; top: -6px; right: -6px; background: #ff4a4a; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .input-row { display: flex; align-items: flex-end; gap: 10px; }
+  textarea { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 16px; resize: none; outline: none; min-height: 24px; max-height: 200px; padding: 4px 0; font-family: inherit; }
+  
+  .tools { display: flex; align-items: center; gap: 8px; margin-top: 10px; justify-content: space-between; }
+  .left-tools { display: flex; align-items: center; gap: 8px; }
+  
+  .icon-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; }
+  .icon-btn:hover { background: #404040; color: var(--text-main); }
+  
   .toggle-btn { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-  .toggle-btn:hover { background: var(--btn-active); color: var(--text-main); }
-  .toggle-btn.active { background: rgba(77, 107, 254, 0.15); border-color: var(--accent); color: var(--accent); }
-  .toggle-btn svg { width: 14px; height: 14px; }
-  
+  .toggle-btn.active { background: rgba(16, 163, 127, 0.15); border-color: var(--accent); color: var(--accent); }
+
   .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
-  .send-btn:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+  .send-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+  select { background: transparent; border: none; color: var(--text-muted); font-size: 13px; outline: none; cursor: pointer; padding: 4px; }
+  select:hover { color: var(--text-main); }
 
   /* Анимации */
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -77,37 +96,36 @@
   .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-  /* Скроллбар */
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+  
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .chat-inner, .input-box { max-width: 100%; padding: 10px; }
+  }
 </style>
 </head>
 <body>
 
-  <!-- Сайдбар -->
+  <!-- Сайдбар с историей -->
   <aside class="sidebar">
     <button class="new-chat-btn" id="newChatBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
       Новый чат
     </button>
-    <div class="history-list" id="historyList">
-      <!-- История будет тут -->
-    </div>
-    <div class="sidebar-bottom">
-      Render + SAMP API
-    </div>
+    <div class="chat-history" id="chatHistory"></div>
+    <div class="sidebar-footer">SAMP AI • 2026</div>
   </aside>
 
   <!-- Основная область -->
   <main class="main-content">
     <div class="chat-container" id="chatContainer">
       <div class="chat-inner" id="chatInner">
-        <!-- Приветствие -->
-        <div style="text-align: center; margin-top: 10vh; color: var(--text-muted);" id="welcomeScreen">
-          <h1 style="font-size: 28px; color: var(--text-main); margin-bottom: 8px;">Чем я могу помочь?</h1>
-          <p>Выберите модель в настройках и напишите сообщение.</p>
+        <div style="text-align: center; margin-top: 15vh; color: var(--text-muted);" id="welcomeScreen">
+          <h1 style="font-size: 32px; color: var(--text-main); margin-bottom: 8px;">Чем я могу помочь?</h1>
+          <p>Введите сообщение или загрузите изображение.</p>
         </div>
       </div>
     </div>
@@ -115,32 +133,35 @@
     <!-- Поле ввода -->
     <div class="input-wrapper">
       <div class="input-box">
-        <textarea id="input" rows="1" placeholder="Отправьте сообщение..."></textarea>
-        <div class="input-actions">
-          <div class="toggles">
-            <!-- Кнопка Раздумия -->
-            <button class="toggle-btn" id="thinkToggle" title="Модель будет рассуждать перед ответом">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12"></path><path d="M12 12 12 2"></path></svg>
+        <div class="image-preview" id="imagePreview">
+          <img id="previewImg" src="" alt="preview">
+          <button class="remove-img" id="removeImgBtn">×</button>
+        </div>
+        <div class="input-row">
+          <textarea id="input" rows="1" placeholder="Отправьте сообщение..."></textarea>
+          <button class="send-btn" id="sendBtn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+        <div class="tools">
+          <div class="left-tools">
+            <button class="icon-btn" id="attachBtn" title="Загрузить изображение">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            
+            <button class="toggle-btn" id="thinkToggle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12"></path><path d="M12 12 12 2"></path></svg>
               Раздумие
             </button>
-            <!-- Кнопка Поиска -->
-            <button class="toggle-btn" id="searchToggle" title="Добавить инструкцию для поиска в интернете">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              Поиск
-            </button>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <select id="modelSelect" style="background: transparent; border: none; color: var(--text-muted); font-size: 12px; outline: none; cursor: pointer;">
-              <option value="deepseek-v4-pro">deepseek-v4-pro</option>
-              <option value="deepseek-v4.1-flash" selected>deepseek-v4.1-flash</option>
-              <option value="qwen3.8-omni-flash">qwen3.8-omni-flash</option>
-              <option value="glm-5.3">glm-5.3</option>
-              <option value="glm-5.3-flash">glm-5.3-flash</option>
-            </select>
-            <button class="send-btn" id="sendBtn" disabled>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-          </div>
+          
+          <select id="modelSelect">
+            <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+            <option value="deepseek-v4.1-flash" selected>deepseek-v4.1-flash</option>
+            <option value="qwen3.8-omni-flash">qwen3.8-omni-flash</option>
+            <option value="glm-5.3">glm-5.3</option>
+          </select>
         </div>
       </div>
     </div>
@@ -149,32 +170,181 @@
 <script>
   const API_URL = "/api/messages";
   
-  // Состояние приложения
-  let state = {
-    messages: [],
-    isBusy: false,
-    useThink: false,
-    useSearch: false
+  // --- УПРАВЛЕНИЕ СОСТОЯНИЕМ ---
+  let currentChatId = Date.now().toString();
+  let chats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
+  let currentMessages = [];
+  let isBusy = false;
+  let useThink = false;
+  let attachedImage = null; // { base64, mimeType }
+
+  // DOM
+  const $ = id => document.getElementById(id);
+  const chatHistory = $("chatHistory"), chatInner = $("chatInner"), input = $("input");
+  const sendBtn = $("sendBtn"), welcomeScreen = $("welcomeScreen");
+  const fileInput = $("fileInput"), imagePreview = $("imagePreview"), previewImg = $("previewImg");
+
+  // --- УТИЛИТЫ MARKDOWN ---
+  function parseMarkdown(text) {
+    if (!text) return "";
+    // Экранируем HTML
+    let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    // Блоки кода ```
+    safe = safe.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      return `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn">Copy</button></div><pre><code>${code}</code></pre></div>`;
+    });
+    // Жирный текст **
+    safe = safe.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    // Инлайн код `
+    safe = safe.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Переносы строк
+    return safe.replace(/\n/g, "<br>");
+  }
+
+  // Делегирование клика для кнопок Copy
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("copy-btn")) {
+      const code = e.target.closest(".code-block").querySelector("code").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        e.target.innerText = "Copied!";
+        setTimeout(() => e.target.innerText = "Copy", 2000);
+      });
+    }
+  });
+
+  // --- ИСТОРИЯ ЧАТОВ ---
+  function saveChats() {
+    localStorage.setItem("samp_chats", JSON.stringify(chats));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    chatHistory.innerHTML = "";
+    Object.keys(chats).sort((a,b) => b - a).forEach(id => {
+      const chat = chats[id];
+      const div = document.createElement("div");
+      div.className = `history-item ${id === currentChatId ? "active" : ""}`;
+      div.textContent = chat.title || "Новый чат";
+      div.onclick = () => loadChat(id);
+      chatHistory.appendChild(div);
+    });
+  }
+
+  function loadChat(id) {
+    if (isBusy) return;
+    currentChatId = id;
+    currentMessages = [...chats[id].messages];
+    chatInner.innerHTML = "";
+    welcomeScreen.style.display = "none";
+    
+    currentMessages.forEach(msg => {
+      renderMessage(msg.role, msg.content, msg.thought, false, true);
+    });
+    renderHistory();
+    scrollToBottom();
+  }
+
+  function startNewChat() {
+    if (isBusy) return;
+    currentChatId = Date.now().toString();
+    currentMessages = [];
+    chatInner.innerHTML = "";
+    chatInner.appendChild(welcomeScreen);
+    welcomeScreen.style.display = "block";
+    input.value = "";
+    input.style.height = "auto";
+    removeImage();
+    sendBtn.disabled = true;
+    renderHistory();
+  }
+
+  // --- РЕНДЕР СООБЩЕНИЙ ---
+  function renderMessage(role, content, thought = null, isError = false, isHistory = false) {
+    welcomeScreen.style.display = "none";
+    
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${role}`;
+    let html = "";
+
+    // Если это сообщение пользователя и там есть картинка (в истории)
+    if (role === "user" && Array.isArray(content)) {
+      const textPart = content.find(c => c.type === "text");
+      const imgPart = content.find(c => c.type === "image");
+      
+      if (imgPart) {
+        html += `<img src="data:${imgPart.source.media_type};base64,${imgPart.source.data}">`;
+      }
+      if (textPart) {
+         html += `<div class="bubble">${parseMarkdown(textPart.text)}</div>`;
+      }
+    } else {
+      // Размышления
+      if (thought) {
+        html += `<details class="thought-box"><summary>🤔 Процесс размышления...</summary><div class="thought-content">${thought}</div></details>`;
+      }
+      // Текст
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = parseMarkdown(content);
+      if (isError) bubble.style.color = "#ff6b6b";
+      html += bubble.outerHTML;
+    }
+
+    msgDiv.innerHTML = html;
+    chatInner.appendChild(msgDiv);
+    if (!isHistory) scrollToBottom();
+  }
+
+  function showTyping() {
+    const div = document.createElement("div");
+    div.className = "message assistant";
+    div.id = "typingIndicator";
+    div.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    chatInner.appendChild(div);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const el = $("typingIndicator");
+    if (el) el.remove();
+  }
+
+  function scrollToBottom() {
+    $("chatContainer").scrollTop = $("chatContainer").scrollHeight;
+  }
+
+  // --- РАБОТА С ИЗОБРАЖЕНИЯМИ ---
+  $("attachBtn").onclick = () => fileInput.click();
+  
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64Data = ev.target.result.split(",")[1];
+      attachedImage = { base64: base64Data, mimeType: file.type };
+      previewImg.src = ev.target.result;
+      imagePreview.style.display = "block";
+      sendBtn.disabled = input.value.trim() === "" && !attachedImage;
+    };
+    reader.readAsDataURL(file);
   };
 
-  // DOM Элементы
-  const chatContainer = document.getElementById("chatContainer");
-  const chatInner = document.getElementById("chatInner");
-  const input = document.getElementById("input");
-  const sendBtn = document.getElementById("sendBtn");
-  const thinkToggle = document.getElementById("thinkToggle");
-  const searchToggle = document.getElementById("searchToggle");
-  const modelSelect = document.getElementById("modelSelect");
-  const welcomeScreen = document.getElementById("welcomeScreen");
+  function removeImage() {
+    attachedImage = null;
+    fileInput.value = "";
+    imagePreview.style.display = "none";
+    sendBtn.disabled = input.value.trim() === "";
+  }
+  $("removeImgBtn").onclick = removeImage;
 
-  // Авто-ресайз текстового поля
+  // --- ОТПРАВКА ---
   input.addEventListener("input", () => {
     input.style.height = "auto";
     input.style.height = Math.min(input.scrollHeight, 200) + "px";
-    sendBtn.disabled = input.value.trim() === "" || state.isBusy;
+    sendBtn.disabled = (input.value.trim() === "" && !attachedImage) || isBusy;
   });
 
-  // Обработка Enter
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -182,112 +352,55 @@
     }
   });
 
-  // Переключатели
-  thinkToggle.addEventListener("click", () => {
-    state.useThink = !state.useThink;
-    thinkToggle.classList.toggle("active", state.useThink);
-  });
+  $("thinkToggle").onclick = (e) => {
+    useThink = !useThink;
+    e.currentTarget.classList.toggle("active", useThink);
+  };
 
-  searchToggle.addEventListener("click", () => {
-    state.useSearch = !state.useSearch;
-    searchToggle.classList.toggle("active", state.useSearch);
-  });
-
-  // Новая сессия
-  document.getElementById("newChatBtn").addEventListener("click", () => {
-    if (state.isBusy) return;
-    state.messages = [];
-    chatInner.innerHTML = "";
-    chatInner.appendChild(welcomeScreen);
-    welcomeScreen.style.display = "block";
-    input.value = "";
-    input.style.height = "auto";
-    sendBtn.disabled = true;
-  });
-
-  // Отрисовка сообщения
-  function renderMessage(role, text, thoughtText = null, isError = false) {
-    if (welcomeScreen.style.display !== "none") welcomeScreen.style.display = "none";
-
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `message ${role}`;
-    
-    let html = "";
-
-    // Если есть размышления, вставляем сворачиваемый блок
-    if (thoughtText) {
-      html += `
-        <details class="thought-box">
-          <summary>🤔 Процесс размышления...</summary>
-          <div class="thought-content">${thoughtText}</div>
-        </details>
-      `;
-    }
-
-    // Сам ответ
-    html += `<div class="bubble" ${isError ? 'style="color: #ff6b6b;"' : ''}>${text}</div>`;
-    
-    msgDiv.innerHTML = html;
-    chatInner.appendChild(msgDiv);
-    scrollToBottom();
-  }
-
-  // Индикатор загрузки (точки)
-  function showTyping() {
-    const div = document.createElement("div");
-    div.className = "message assistant";
-    div.id = "typingIndicator";
-    div.innerHTML = `
-      <div class="typing-indicator">
-        <span></span><span></span><span></span>
-      </div>
-    `;
-    chatInner.appendChild(div);
-    scrollToBottom();
-  }
-
-  function removeTyping() {
-    const el = document.getElementById("typingIndicator");
-    if (el) el.remove();
-  }
-
-  function scrollToBottom() {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
-
-  // Отправка
   async function sendMessage() {
     const text = input.value.trim();
-    if (!text || state.isBusy) return;
+    if ((!text && !attachedImage) || isBusy) return;
 
-    state.isBusy = true;
+    isBusy = true;
     sendBtn.disabled = true;
+    
+    // Формируем контент сообщения (текст + опционально картинка)
+    let userContent;
+    if (attachedImage) {
+      userContent = [
+        { type: "image", source: { type: "base64", media_type: attachedImage.mimeType, data: attachedImage.base64 } },
+        { type: "text", text: text || "Что на этой картинке?" }
+      ];
+    } else {
+      userContent = text;
+    }
+
+    // Сохраняем в локальную историю
+    const msgObj = { role: "user", content: userContent };
+    currentMessages.push(msgObj);
+    
+    // Обновляем UI
+    renderMessage("user", userContent);
     input.value = "";
     input.style.height = "auto";
-
-    renderMessage("user", text);
-    state.messages.push({ role: "user", content: text });
+    const imgDataToSend = attachedImage;
+    removeImage();
+    
     showTyping();
 
-    // Формируем системный промпт на основе переключателей
+    // Системный промпт (Раздумия)
     let systemPrompt = "";
-    if (state.useThink) {
-      systemPrompt += "Перед тем как ответить, подумай шаг за шагом. Обязательно оберни процесс своих размышлений в теги <thought>...</thought>, а сам ответ пиши после них. ";
-    }
-    if (state.useSearch) {
-      systemPrompt += "Постарайся использовать свои знания для поиска актуальной информации. Если найдешь данные в интернете, сошлись на источник. ";
+    if (useThink) {
+      systemPrompt = "Перед ответом подумай шаг за шагом. Обязательно оберни размышления в теги <thought>...</thought>, а сам ответ пиши после них.";
     }
 
+    // Формируем запрос
     const payload = {
-      model: modelSelect.value,
+      model: $("modelSelect").value,
       max_tokens: 4096,
-      messages: state.messages
+      messages: currentMessages.map(m => ({ role: m.role, content: m.content }))
     };
-
-    // Добавляем system промпт, если он есть
-    if (systemPrompt) {
-      payload.system = systemPrompt;
-    }
+    if (systemPrompt) payload.system = systemPrompt;
 
     try {
       const res = await fetch(API_URL, {
@@ -295,23 +408,20 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
       const data = await res.json();
       removeTyping();
 
       if (!res.ok) {
         renderMessage("assistant", data.error?.message || "Ошибка API", null, true);
-        state.isBusy = false;
+        isBusy = false;
         return;
       }
 
-      // Извлекаем текст ответа (Anthropic API формат)
       let fullText = data.content?.filter(b => b.type === "text").map(b => b.text).join("") || "(пусто)";
-      
       let thought = null;
       let answer = fullText;
 
-      // Парсим теги <thought> если они есть
+      // Парсим размышления
       if (fullText.includes("<thought>")) {
         const match = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
         if (match) {
@@ -320,22 +430,42 @@
         }
       }
 
-      // Сохраняем в историю (без тегов размышлений)
-      state.messages.push({ role: "assistant", content: answer });
+      // Сохраняем в историю
+      const ansObj = { role: "assistant", content: answer, thought: thought };
+      currentMessages.push(ansObj);
       
-      // Рендерим
+      // Обновляем UI
       renderMessage("assistant", answer, thought);
+
+      // Сохраняем чат в localStorage
+      if (!chats[currentChatId]) {
+        // Создаем заголовок из первых 30 символов
+        const titleText = typeof userContent === "string" ? userContent : "Изображение";
+        chats[currentChatId] = { title: titleText.slice(0, 30) || "Новый чат", messages: [] };
+      }
+      chats[currentChatId].messages = currentMessages;
+      saveChats();
 
     } catch (err) {
       removeTyping();
       renderMessage("assistant", "Сетевая ошибка: " + err.message, null, true);
     } finally {
-      state.isBusy = false;
-      sendBtn.disabled = input.value.trim() === "";
+      isBusy = false;
+      sendBtn.disabled = (input.value.trim() === "" && !attachedImage);
     }
   }
 
-  sendBtn.addEventListener("click", sendMessage);
+  // Инициализация
+  renderHistory();
+  if (Object.keys(chats).length > 0) {
+    // Загружаем последний чат
+    const lastChatId = Object.keys(chats).sort((a,b) => b - a)[0];
+    loadChat(lastChatId);
+  } else {
+    $("newChatBtn").onclick = startNewChat;
+  }
+  $("newChatBtn").onclick = startNewChat;
+  sendBtn.onclick = sendMessage;
 </script>
 </body>
 </html>
