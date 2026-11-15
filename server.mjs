@@ -24,18 +24,15 @@ async function saveUsers() {
 }
 
 const server = http.createServer(async (req, res) => {
-  // --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ ---
   if (req.method === "POST" && req.url === "/api/auth") {
     let body = "";
     req.on("data", chunk => body += chunk);
     req.on("end", async () => {
       const { username, password, email, action } = JSON.parse(body);
-      
       if (!username || !password) {
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Введите логин и пароль" }));
       }
-
       if (action === "register") {
         if (users[username]) {
           res.writeHead(400, { "Content-Type": "application/json" });
@@ -46,7 +43,6 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ username, isAdmin: false, limit: 10, blocked: false }));
       } 
-      
       if (action === "login") {
         const user = users[username];
         if (!user || user.password !== password) {
@@ -60,7 +56,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- АДМИН ПАНЕЛЬ ---
   if (req.method === "GET" && req.url === "/api/admin/users") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify(users));
@@ -82,34 +77,25 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- ПРОКСИ ЧАТА С ОТМЕНОЙ ---
   if (req.method === "POST" && req.url === "/api/messages") {
     const username = req.headers["x-user"];
     const user = users[username];
 
-    if (!user) {
-      res.writeHead(401); return res.end(JSON.stringify({ error: { message: "Пользователь не найден" } }));
-    }
-    if (user.blocked) {
-      res.writeHead(403); return res.end(JSON.stringify({ error: { message: "Вы заблокированы администратором." } }));
-    }
-    if (!user.isAdmin && user.limit <= 0) {
-      res.writeHead(403); return res.end(JSON.stringify({ error: { message: "У вас закончились сообщения. Обратитесь к админу." } }));
-    }
+    if (!user) { res.writeHead(401); return res.end(JSON.stringify({ error: { message: "Пользователь не найден" } })); }
+    if (user.blocked) { res.writeHead(403); return res.end(JSON.stringify({ error: { message: "Вы заблокированы." } })); }
+    if (!user.isAdmin && user.limit <= 0) { res.writeHead(403); return res.end(JSON.stringify({ error: { message: "У вас закончились сообщения." } })); }
 
     let body = "";
     req.on("data", chunk => body += chunk);
     req.on("end", async () => {
       try {
-        if (!user.isAdmin) {
-          user.limit -= 1;
-          await saveUsers();
-        }
+        if (!user.isAdmin) { user.limit -= 1; await saveUsers(); }
 
-        // Создаем контроллер для отмены запроса к API, если клиент отключится
         const controller = new AbortController();
+        
+        // Если браузер разрывает соединение (нажата кнопка "Стоп" или закрыта вкладка)
         req.on("close", () => {
-          controller.abort(); // Клиент нажал "Стоп" или закрыл вкладку
+          controller.abort();
         });
 
         const upstream = await fetch(TARGET, {
@@ -134,7 +120,10 @@ const server = http.createServer(async (req, res) => {
         }
         res.end();
       } catch (err) {
-        if (err.name === 'AbortError') return; // Запрос был отменен, ничего не делаем
+        if (err.name === 'AbortError') {
+          // Клиент нажал "Стоп", тихо игнорируем
+          return; 
+        }
         res.writeHead(502, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: { message: "Proxy error: " + err.message } }));
       }
@@ -142,7 +131,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // --- СТАТИКА ---
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
     try {
       const html = await readFile(path.join(process.cwd(), "index.html"));
