@@ -100,8 +100,13 @@
   /* АДМИНКА */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
   .modal-content { background: var(--bg-panel); width: 100%; max-width: 800px; border-radius: 12px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; }
+  
   .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
   .admin-table th, .admin-table td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  .admin-table th { cursor: pointer; user-select: none; transition: 0.2s; }
+  .admin-table th:hover { color: var(--accent); }
+  .admin-table th span { font-size: 10px; margin-left: 4px; color: var(--text-muted); }
+  
   .admin-btn { padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; color: white; margin-right: 4px; }
   .btn-save { background: var(--accent); }
   .btn-block { background: var(--error); }
@@ -198,7 +203,14 @@
       <h2 style="margin-top:0;">Управление пользователями</h2>
       <div style="overflow-y:auto;">
         <table class="admin-table">
-          <thead><tr><th>Юзер</th><th>Роль</th><th>Лимит</th><th>Действия</th></tr></thead>
+          <thead>
+            <tr>
+              <th onclick="sortAdminTable('name')">Юзер <span id="sort-name"></span></th>
+              <th onclick="sortAdminTable('role')">Роль <span id="sort-role"></span></th>
+              <th onclick="sortAdminTable('limit')">Лимит <span id="sort-limit"></span></th>
+              <th>Действия</th>
+            </tr>
+          </thead>
           <tbody id="adminUserList"></tbody>
         </table>
       </div>
@@ -218,7 +230,6 @@
       
       <div class="chat-view-box" id="viewerMessages"></div>
 
-      <!-- ИНТЕРФЕЙС ПОДДЕЛКИ (ДОСТУПЕН ТОЛЬКО ЗДЕСЬ) -->
       <div class="forge-input">
         <select id="forgeRole">
           <option value="user">От Юзера</option>
@@ -241,6 +252,11 @@
   let useThink = false, useSearch = false, selectedModel = "qwen3.8-omni-flash";
   let modelStatuses = {}; 
   
+  // Переменные для сортировки админки
+  let adminUsersData = {};
+  let adminSortField = 'name';
+  let adminSortAsc = true;
+
   const MODELS = {
     "Tier C": ["qwen3.8-omni-flash", "deepseek-v4-pro", "deepseek-v4.1-flash", "glm-5.3", "glm-5.3-flash", "glm-5.3-prime", "kimi-k3", "deepseek-v4.1-flash-1017"],
     "Tier B": ["gemini-4-argon", "gemini-4-carbon", "gpt-6-luna", "gpt-6.1-sol", "gpt-6-sol", "kimi-k3.1-pro", "deepseek-v4.1-flash-uncensored", "glm-5.3-uncensored", "glm-5.3-flash-uncensored"],
@@ -269,15 +285,10 @@
   }
 
   function finishLogin(data) {
-    currentUser = data; 
-    localStorage.setItem("samp_user", JSON.stringify(currentUser));
-    
-    // Мгновенно обновляем UI
-    $("authScreen").style.display = "none"; 
-    $("userDisplay").textContent = currentUser.username;
+    currentUser = data; localStorage.setItem("samp_user", JSON.stringify(currentUser));
+    $("authScreen").style.display = "none"; $("userDisplay").textContent = currentUser.username;
     $("limitDisplay").textContent = currentUser.role === "user" ? `Сообщений: ${currentUser.limit}` : `Роль: ${currentUser.role}`;
     if (currentUser.role === "admin") $("adminBtn").style.display = "block";
-    
     renderHistory();
   }
 
@@ -285,15 +296,9 @@
 
   // --- МОБИЛЬНАЯ ШТОРКА ---
   function toggleSidebar() {
-    const sidebar = $("sidebar");
-    const overlay = $("mobileOverlay");
-    if (sidebar.classList.contains("open")) {
-      sidebar.classList.remove("open");
-      overlay.classList.remove("open");
-    } else {
-      sidebar.classList.add("open");
-      overlay.classList.add("open");
-    }
+    const sidebar = $("sidebar"), overlay = $("mobileOverlay");
+    if (sidebar.classList.contains("open")) { sidebar.classList.remove("open"); overlay.classList.remove("open"); }
+    else { sidebar.classList.add("open"); overlay.classList.add("open"); }
   }
 
   // --- СИНХРОНИЗАЦИЯ ЧАТОВ ---
@@ -325,37 +330,58 @@
   }
 
   async function pingAllModels() {
-    modelStatuses = {}; 
-    renderModelsMenu();
+    modelStatuses = {}; renderModelsMenu();
     const allModels = Object.values(MODELS).flat();
-    
     await Promise.allSettled(allModels.map(async (m, i) => {
       return new Promise(resolve => setTimeout(async () => {
         try {
           const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json", "x-user": currentUser.username }, body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }) });
           modelStatuses[m] = res.ok ? 'ok' : 'error';
         } catch { modelStatuses[m] = 'error'; }
-        renderModelsMenu();
-        resolve();
+        renderModelsMenu(); resolve();
       }, i * 100));
     }));
   }
 
-  $("modelBtn").onclick = (e) => {
-    e.stopPropagation();
-    const isOpening = !$("modelMenu").classList.contains("show");
-    $("modelMenu").classList.toggle("show");
-    if (isOpening) pingAllModels();
-  };
-
+  $("modelBtn").onclick = (e) => { e.stopPropagation(); const isOpening = !$("modelMenu").classList.contains("show"); $("modelMenu").classList.toggle("show"); if (isOpening) pingAllModels(); };
   document.addEventListener("click", (e) => { if (!$("modelBtn").contains(e.target)) $("modelMenu").classList.remove("show"); });
 
-  // --- АДМИН ПАНЕЛЬ ---
+  // --- АДМИН ПАНЕЛЬ И СОРТИРОВКА ---
   async function openAdminPanel() {
-    const res = await fetch("/api/admin/users"); const users = await res.json();
+    const res = await fetch("/api/admin/users"); 
+    adminUsersData = await res.json();
+    renderAdminTable();
+    $("adminModal").style.display = "flex";
+  }
+
+  function sortAdminTable(field) {
+    if (adminSortField === field) adminSortAsc = !adminSortAsc;
+    else { adminSortField = field; adminSortAsc = true; }
+    renderAdminTable();
+  }
+
+  function renderAdminTable() {
     const tbody = $("adminUserList"); tbody.innerHTML = "";
     
-    for (const [name, data] of Object.entries(users)) {
+    // Обновляем стрелочки в заголовках
+    ['name', 'role', 'limit'].forEach(f => {
+      $(`sort-${f}`).textContent = adminSortField === f ? (adminSortAsc ? '▲' : '▼') : '';
+    });
+
+    // Сортируем ключи (имена пользователей)
+    let sortedNames = Object.keys(adminUsersData).sort((a, b) => {
+      let valA, valB;
+      if (adminSortField === 'name') { valA = a.toLowerCase(); valB = b.toLowerCase(); }
+      else if (adminSortField === 'role') { valA = adminUsersData[a].role; valB = adminUsersData[b].role; }
+      else if (adminSortField === 'limit') { valA = adminUsersData[a].limit; valB = adminUsersData[b].limit; }
+      
+      if (valA < valB) return adminSortAsc ? -1 : 1;
+      if (valA > valB) return adminSortAsc ? 1 : -1;
+      return 0;
+    });
+
+    for (const name of sortedNames) {
+      const data = adminUsersData[name];
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${name}</td>
@@ -374,15 +400,19 @@
         </td>`;
       tbody.appendChild(tr);
     }
-    $("adminModal").style.display = "flex";
   }
+
   async function updateUser(u, a, v) {
     await fetch("/api/admin/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUser: u, action: a, value: v }) });
-    openAdminPanel();
+    // Обновляем данные и перерисовываем без сброса сортировки
+    const res = await fetch("/api/admin/users"); 
+    adminUsersData = await res.json();
+    renderAdminTable();
   }
+  
   function closeAdminPanel() { $("adminModal").style.display = "none"; }
 
-  // --- ПРОСМОТР И ПОДДЕЛКА ЧАТОВ (ФОРЖ) ---
+  // --- ПРОСМОТР И ПОДДЕЛКА ЧАТОВ ---
   let currentViewUser = null;
   let currentViewChatId = null;
 
@@ -393,16 +423,20 @@
     const userChats = await res.json();
     
     const select = $("viewerChatSelect"); select.innerHTML = "";
-    for (const id in userChats) {
+    
+    // Сортируем чаты по времени (ID) - новые сверху
+    const sortedChatIds = Object.keys(userChats).sort((a, b) => b - a);
+    
+    for (const id of sortedChatIds) {
       const opt = document.createElement("option"); opt.value = id; opt.textContent = userChats[id].title;
       select.appendChild(opt);
     }
     
-    if (Object.keys(userChats).length === 0) {
+    if (sortedChatIds.length === 0) {
       $("viewerMessages").innerHTML = "<div style='color:gray;'>У пользователя нет сохраненных чатов.</div>";
       currentViewChatId = null;
     } else {
-      currentViewChatId = Object.keys(userChats)[0];
+      currentViewChatId = sortedChatIds[0];
       select.value = currentViewChatId;
       loadSpecificChat();
     }
@@ -453,7 +487,6 @@
         $("welcomeScreen").style.display = "none";
         currentMessages.forEach(msg => renderMessage(msg.role, msg.content, msg.thought, false, true)); 
         renderHistory(); 
-        // Закрываем шторку на мобилке при выборе чата
         if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar(); 
       };
       $("chatHistory").appendChild(div);
@@ -574,7 +607,6 @@
     if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar();
   };
 
-  // Инициализация
   if (currentUser) finishLogin(currentUser);
 </script>
 </body>
