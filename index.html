@@ -76,7 +76,7 @@
   .toggle-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 20px; padding: 4px 10px; cursor: pointer; font-size: 13px; transition: 0.2s; }
   .toggle-btn.active { color: var(--accent); border-color: var(--accent); }
   
-  .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+  .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .send-btn:disabled { background: #1e293b; color: #475569; }
   .send-btn.stop-mode { background: var(--error); }
@@ -235,7 +235,7 @@
   const API_URL = "/api/messages";
   let currentUser = JSON.parse(localStorage.getItem("samp_user") || "null");
   let currentChatId = Date.now().toString();
-  let chats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
+  let chats = {};
   let currentMessages = [];
   let isBusy = false;
   let abortController = null;
@@ -245,6 +245,32 @@
   let adminUsersData = {};
   let adminSortField = 'name';
   let adminSortAsc = true;
+
+  // --- ЗАЩИТА ОТ СТАРЫХ/БИТЫХ ЧАТОВ ---
+  try {
+    let rawChats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
+    chats = {};
+    for (let id in rawChats) {
+      if (rawChats[id] && Array.isArray(rawChats[id].messages)) {
+        chats[id] = {
+          title: rawChats[id].title || "Чат",
+          messages: rawChats[id].messages.map(m => {
+            let c = m.content;
+            if (Array.isArray(c)) {
+              let t = c.find(x => x.type === "text");
+              c = t ? t.text : "(вложение)";
+            }
+            if (typeof c !== "string") c = String(c || "");
+            return { role: m.role, content: c, thought: m.thought };
+          })
+        };
+      }
+    }
+    localStorage.setItem("samp_chats", JSON.stringify(chats));
+  } catch(e) {
+    chats = {};
+    localStorage.removeItem("samp_chats");
+  }
 
   const MODELS = {
     "Tier C": ["qwen3.8-omni-flash", "deepseek-v4-pro", "deepseek-v4.1-flash", "glm-5.3", "glm-5.3-flash", "glm-5.3-prime", "kimi-k3", "deepseek-v4.1-flash-1017"],
@@ -277,6 +303,12 @@
     $("authScreen").style.display = "none"; $("userDisplay").textContent = currentUser.username;
     $("limitDisplay").textContent = currentUser.role === "user" ? `Сообщений: ${currentUser.limit}` : `Роль: ${currentUser.role}`;
     if (currentUser.role === "admin") $("adminBtn").style.display = "block";
+    
+    // Принудительный сброс загрузки
+    isBusy = false;
+    if (abortController) abortController.abort();
+    setBusyUI(false);
+    
     renderHistory();
   }
 
@@ -452,12 +484,20 @@
       const div = document.createElement("div"); div.className = `history-item ${id === currentChatId ? "active" : ""}`;
       div.textContent = chats[id].title || "Новый чат";
       div.onclick = () => { 
-        if (isBusy) return; 
+        // ПРИНУДИТЕЛЬНЫЙ СБРОС ЗАВИСШЕГО СОСТОЯНИЯ
+        if (abortController) abortController.abort();
+        isBusy = false;
+        setBusyUI(false);
+
         currentChatId = id; 
         currentMessages = [...(chats[id].messages || [])]; 
         chatInner.innerHTML = ""; 
         $("welcomeScreen").style.display = "none";
-        currentMessages.forEach(msg => renderMessage(msg.role, msg.content, msg.thought, false, true)); 
+        
+        try {
+          currentMessages.forEach(msg => renderMessage(msg.role, msg.content, msg.thought, false, true)); 
+        } catch(e) { console.error(e); }
+        
         renderHistory(); 
         if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar(); 
       };
@@ -483,7 +523,7 @@
     let textContent = content;
     if (Array.isArray(content)) {
       const textPart = content.find(c => c.type === "text");
-      textContent = textPart ? textPart.text : "(изображение)";
+      textContent = textPart ? textPart.text : "(вложение)";
     }
     
     bubble.innerHTML = parseMarkdown(textContent);
@@ -580,7 +620,7 @@
   $("searchToggle").onclick = (e) => { useSearch = !useSearch; e.currentTarget.classList.toggle("active", useSearch); };
 
   $("newChatBtn").onclick = () => {
-    if (isBusy) return;
+    if (isBusy) { if(abortController) abortController.abort(); isBusy = false; setBusyUI(false); }
     currentChatId = Date.now().toString(); currentMessages = [];
     chatInner.innerHTML = ""; chatInner.appendChild($("welcomeScreen")); $("welcomeScreen").style.display = "block";
     input.value = ""; setBusyUI(false); renderHistory();
