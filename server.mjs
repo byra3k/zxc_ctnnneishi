@@ -7,19 +7,17 @@ const TARGET = "https://api.samp.team/v1/messages";
 const API_KEY = process.env.API_KEY;
 const USERS_FILE = path.join(process.cwd(), "users.json");
 
-// Начальные пользователи (если файла нет)
+// Начальный админ
 let users = {
-  "byra3k": { password: "lubitel_jivotnih", isAdmin: true, limit: 9999, blocked: false }
+  "byra3k": { password: "lubitel_jivotnih", email: "", isAdmin: true, limit: 9999, blocked: false }
 };
 
-// Загрузка пользователей из файла
 async function loadUsers() {
   try {
     await access(USERS_FILE);
     const data = await readFile(USERS_FILE, "utf-8");
     users = JSON.parse(data);
   } catch (e) {
-    // Файла нет, создаем базового админа
     await saveUsers();
   }
 }
@@ -29,31 +27,43 @@ async function saveUsers() {
 }
 
 const server = http.createServer(async (req, res) => {
-  // --- API АВТОРИЗАЦИИ ---
-  if (req.method === "POST" && req.url === "/api/login") {
+  // --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ ---
+  if (req.method === "POST" && req.url === "/api/auth") {
     let body = "";
     req.on("data", chunk => body += chunk);
     req.on("end", async () => {
-      const { username, password } = JSON.parse(body);
+      const { username, password, email, action } = JSON.parse(body);
       
-      if (username === "byra3k" && password !== "lubitel_jivotnih") {
-        res.writeHead(401, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Неверный пароль администратора" }));
+      if (!username || !password) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Введите логин и пароль" }));
       }
 
-      if (!users[username]) {
-        // Регистрация нового пользователя
-        users[username] = { password: password || "", isAdmin: false, limit: 10, blocked: false };
+      if (action === "register") {
+        if (users[username]) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Этот Username уже занят" }));
+        }
+        // Создаем нового пользователя (по умолчанию 10 сообщений)
+        users[username] = { password, email: email || "", isAdmin: false, limit: 10, blocked: false };
         await saveUsers();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ 
+          username, isAdmin: false, limit: 10, blocked: false 
+        }));
+      } 
+      
+      if (action === "login") {
+        const user = users[username];
+        if (!user || user.password !== password) {
+          res.writeHead(401, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "Неверный логин или пароль" }));
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ 
+          username, isAdmin: user.isAdmin, limit: user.limit, blocked: user.blocked
+        }));
       }
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ 
-        username, 
-        isAdmin: users[username].isAdmin, 
-        limit: users[username].limit,
-        blocked: users[username].blocked
-      }));
     });
     return;
   }
@@ -99,7 +109,6 @@ const server = http.createServer(async (req, res) => {
     req.on("data", chunk => body += chunk);
     req.on("end", async () => {
       try {
-        // Списываем 1 сообщение
         if (!user.isAdmin) {
           user.limit -= 1;
           await saveUsers();
