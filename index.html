@@ -11,7 +11,6 @@
     --accent: #3b82f6; --accent-hover: #2563eb; --user-bubble: #1e293b;
     --code-bg: #0f172a; --success: #10b981; --error: #ef4444;
   }
-
   * { box-sizing: border-box; }
   html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; overflow: hidden; }
 
@@ -47,7 +46,6 @@
   .history-item:hover, .history-item.active { background: var(--bg-input); }
   .history-item.active { font-weight: 600; border-left: 3px solid var(--accent); }
   .sidebar-footer { padding: 16px; font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-  
   .user-info { font-weight: bold; color: var(--accent); }
   .btn-admin { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); padding: 6px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 12px; margin-top: 5px; }
 
@@ -120,7 +118,6 @@
 </head>
 <body>
 
-  <!-- ЭКРАН ВХОДА / РЕГИСТРАЦИИ -->
   <div id="authScreen">
     <div class="auth-box">
       <div class="auth-tabs">
@@ -143,14 +140,12 @@
     </div>
   </div>
 
-  <!-- МОБИЛЬНАЯ ШАПКА -->
   <header class="mobile-header" style="position: absolute; top:0; left:0; right:0; z-index: 50;">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <span>SAMP AI</span>
     <div style="width:24px;"></div>
   </header>
 
-  <!-- САЙДБАР -->
   <aside class="sidebar" id="sidebar">
     <button class="new-chat-btn" id="newChatBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -165,7 +160,6 @@
     </div>
   </aside>
 
-  <!-- ОСНОВНОЙ КОНТЕНТ -->
   <main class="main-content">
     <div class="chat-container" id="chatContainer" style="margin-top: 50px;">
       <div class="chat-inner" id="chatInner">
@@ -202,7 +196,6 @@
     </div>
   </main>
 
-  <!-- МОДАЛКА АДМИНА -->
   <div id="adminModal">
     <div class="admin-content">
       <h2 style="margin-top:0;">Пользователи</h2>
@@ -222,7 +215,7 @@
   let currentMessages = [];
   
   let isBusy = false;
-  let currentAbortController = null; // Контроллер для отмены запроса
+  let abortController = null; // Глобальный контроллер отмены
 
   let useThink = false, useSearch = false, selectedModel = "qwen3.8-omni-flash";
   
@@ -235,11 +228,10 @@
   const $ = id => document.getElementById(id);
   const chatContainer = $("chatContainer"), chatInner = $("chatInner"), input = $("input"), sendBtn = $("sendBtn");
 
-  // --- УПРАВЛЕНИЕ UI ОТПРАВКИ / СТОПА ---
   function setBusyUI(busy) {
     isBusy = busy;
     if (busy) {
-      sendBtn.disabled = false; // Кнопка активна, чтобы можно было нажать Стоп
+      sendBtn.disabled = false; 
       sendBtn.classList.add("stop-mode");
       sendBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"></rect></svg>';
     } else {
@@ -249,7 +241,13 @@
     }
   }
 
-  // --- АВТОРИЗАЦИЯ ---
+  function stopGeneration() {
+    if (abortController) {
+      abortController.abort();
+      setBusyUI(false); // Сразу возвращаем кнопку
+    }
+  }
+
   function switchAuth(type) {
     if (type === 'login') {
       $("tabLogin").classList.add("active"); $("tabRegister").classList.remove("active");
@@ -290,7 +288,6 @@
 
   function logout() { currentUser = null; localStorage.removeItem("samp_user"); location.reload(); }
 
-  // --- АДМИН ПАНЕЛЬ ---
   async function openAdminPanel() {
     const res = await fetch("/api/admin/users"); const users = await res.json();
     const tbody = $("adminUserList"); tbody.innerHTML = "";
@@ -316,7 +313,6 @@
   }
   function closeAdminPanel() { $("adminModal").style.display = "none"; }
 
-  // --- МОБИЛЬНОЕ МЕНЮ ---
   function toggleSidebar() { $("sidebar").classList.toggle("open"); }
   document.addEventListener("click", (e) => {
     if (window.innerWidth <= 768 && !$("sidebar").contains(e.target) && e.target.className !== "hamburger") {
@@ -324,7 +320,6 @@
     }
   });
 
-  // --- ЧАТ ---
   function parseMarkdown(text) {
     if (!text) return "";
     let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -412,11 +407,9 @@
     if (!isHistory) scrollToBottom();
   }
 
-  // --- ОТПРАВКА ---
   async function sendMessage() {
     const text = input.value.trim();
     if (!text || isBusy || !currentUser) return;
-
     if (currentUser.blocked) return alert("Вы заблокированы.");
     if (!currentUser.isAdmin && currentUser.limit <= 0) return alert("У вас закончились сообщения.");
 
@@ -440,15 +433,16 @@
     };
     if (systemPrompt) payload.system = systemPrompt;
 
-    // Создаем контроллер отмены
-    currentAbortController = new AbortController();
+    abortController = new AbortController();
+    const signal = abortController.signal;
+    let fullText = "";
 
     try {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-user": currentUser.username },
         body: JSON.stringify(payload),
-        signal: currentAbortController.signal // Привязываем сигнал
+        signal: signal
       });
 
       if (!res.ok) {
@@ -463,16 +457,18 @@
       }
 
       const reader = res.body.getReader(); const decoder = new TextDecoder();
-      let fullText = "", buffer = "";
+      let buffer = "";
 
       while (true) {
-        const { done, value } = await reader.read(); if (done) break;
+        const { done, value } = await reader.read(); 
+        if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n"); buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim(); if (dataStr === "[DONE]") continue;
+            const dataStr = line.slice(6).trim(); 
+            if (dataStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(dataStr);
               if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
@@ -492,6 +488,7 @@
         }
       }
 
+      // Генерация завершилась сама (без отмены)
       bubble.innerHTML = bubble.innerHTML.replace('<span class="typing-cursor"></span>', '');
       let finalThought = null, finalAnswer = fullText;
       const match = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
@@ -503,43 +500,39 @@
       localStorage.setItem("samp_chats", JSON.stringify(chats)); renderHistory();
 
     } catch (err) {
-      // Если это была отмена — обрабатываем тихо
-      if (err.name === 'AbortError') {
-        bubble.innerHTML = bubble.innerHTML.replace('<span class="typing-cursor"></span>', ' <span style="color:var(--text-muted);font-size:12px;">[Остановлено]</span>');
-        // Сохраняем то, что успело сгенерироваться
-        let fullText = bubble.innerText.replace('[Остановлено]', '').trim();
+      // Если произошла отмена
+      if (signal.aborted || err.name === 'AbortError') {
+        // Убираем курсор и добавляем плашку
+        let currentHtml = bubble.innerHTML.replace('<span class="typing-cursor"></span>', '');
+        bubble.innerHTML = currentHtml + ' <span style="color:var(--text-muted);font-size:12px;">[Остановлено]</span>';
+        
+        // Сохраняем то, что успело прийти
         if (fullText) {
-            currentMessages.push({ role: "assistant", content: fullText });
-            if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 30), messages: [] };
-            chats[currentChatId].messages = currentMessages;
-            localStorage.setItem("samp_chats", JSON.stringify(chats)); renderHistory();
+          let finalThought = null, finalAnswer = fullText;
+          const match = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
+          if (match) { finalThought = match[1].trim(); finalAnswer = fullText.replace(match[0], "").trim(); }
+
+          currentMessages.push({ role: "assistant", content: finalAnswer, thought: finalThought });
+          if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 30), messages: [] };
+          chats[currentChatId].messages = currentMessages;
+          localStorage.setItem("samp_chats", JSON.stringify(chats)); renderHistory();
+        } else {
+          // Если ничего не успело прийти, удаляем пустой пузырь
+          msgDiv.remove();
         }
       } else {
         bubble.innerHTML = `<span style="color: var(--error);">Ошибка: ${err.message}</span>`;
       }
     } finally {
-      currentAbortController = null;
-      setBusyUI(false);
+      abortController = null;
     }
   }
 
-  // --- ОСТАНОВКА ГЕНЕРАЦИИ ---
-  function stopGeneration() {
-    if (currentAbortController) {
-      currentAbortController.abort(); // Прерываем fetch
-    }
-  }
-
-  // Обработчик клика по кнопке (Отправить / Стоп)
   sendBtn.onclick = () => {
-    if (isBusy) {
-      stopGeneration();
-    } else {
-      sendMessage();
-    }
+    if (isBusy) stopGeneration();
+    else sendMessage();
   };
 
-  // Запуск
   if (currentUser) finishLogin(currentUser);
   renderModelsMenu();
   renderHistory();
