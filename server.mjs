@@ -152,6 +152,24 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+// Извлекает человекочитаемое сообщение об ошибке из тела апстрима
+function extractUpstreamError(text, fallback) {
+  if (!text) return fallback;
+  try {
+    const j = JSON.parse(text);
+    return String(
+      j?.error?.message
+      || j?.error?.error?.message
+      || j?.message
+      || (typeof j?.error === "string" ? j.error : null)
+      || text.slice(0, 500)
+      || fallback
+    ).slice(0, 500);
+  } catch {
+    return (text.slice(0, 500) || fallback);
+  }
+}
+
 // ---------- СЕРВЕР ----------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
@@ -199,7 +217,7 @@ const server = http.createServer(async (req, res) => {
     } catch { return json(res, 400, { error: "Некорректный запрос" }); }
   }
 
-  // ----- GEN-TITLE (AI-название чата) -----
+  // ----- GEN-TITLE -----
   if (req.method === "POST" && pathname === "/api/gen-title") {
     const auth = requireAuth(req, res);
     if (!auth) return;
@@ -222,7 +240,10 @@ const server = http.createServer(async (req, res) => {
           messages: [{ role: "user", content: `Диалог:\n${brief}\n\nНазвание:` }]
         })
       });
-      if (!upstream.ok) return json(res, 502, { error: "upstream error" });
+      if (!upstream.ok) {
+        const t = await upstream.text();
+        return json(res, 502, { error: extractUpstreamError(t, "upstream error") });
+      }
       const data = await upstream.json();
       let title = (data.content || []).filter(c => c.type === "text").map(c => c.text).join("").trim();
       title = title.replace(/^["'«»\s]+|["'«»\s.]+$/g, "").slice(0, 60);
@@ -320,7 +341,10 @@ const server = http.createServer(async (req, res) => {
 
         if (!upstream.ok) {
           const text = await upstream.text();
-          res.write(`data: ${JSON.stringify({ type: "error", message: text.slice(0, 500) || `Upstream ${upstream.status}` })}\n\n`);
+          const msg = extractUpstreamError(text, `Upstream ${upstream.status}`);
+          let code = null;
+          try { const j = JSON.parse(text); code = j?.error?.type || j?.type || null; } catch {}
+          res.write(`data: ${JSON.stringify({ type: "error", message: msg, code, status: upstream.status })}\n\n`);
           res.write("data: [DONE]\n\n");
           return res.end();
         }
