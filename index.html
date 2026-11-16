@@ -162,6 +162,7 @@
   .model-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; transition: 0.15s; }
   .model-item:hover { background: var(--bg-hover); }
   .model-item.active { background: var(--accent-dim); color: var(--accent); }
+  .model-item-err:hover { background: rgba(239,68,68,0.08); }
 
   /* MODALS */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
@@ -359,6 +360,24 @@
     setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 400); }, 3200);
   }
 
+  // --- Универсальный парсер ошибок ---
+  function extractErrMsg(s) {
+    if (typeof s !== "string") return String(s || "Ошибка");
+    const trimmed = s.trim();
+    if (!trimmed.startsWith("{")) return s;
+    try {
+      const j = JSON.parse(trimmed);
+      return j?.error?.message
+          || j?.error?.error?.message
+          || j?.message
+          || (typeof j?.error === "string" ? j.error : null)
+          || s;
+    } catch { return s; }
+  }
+  function isModelUnavailable(msg) {
+    return /недоступ|unavailable|not\s*available|model.*not.*found|overloaded/i.test(msg);
+  }
+
   try {
     let rawChats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
     chats = {};
@@ -513,12 +532,15 @@
       groupDiv.className = "model-group-title";
       groupDiv.textContent = tier;
       models.forEach(m => {
-        if (currentUser && currentUser.role === 'user' && modelStatuses[m] === 'error') return;
+        if (currentUser && currentUser.role === 'user' && modelStatuses[m] === 'error') {
+          // Показываем, но зачёркнутым (не скрываем — пусть юзер видит что было)
+        }
         if (!hasVisible) { $("modelMenu").appendChild(groupDiv); hasVisible = true; }
         const item = document.createElement("div");
-        item.className = `model-item ${m === selectedModel ? 'active' : ''}`;
-        const status = modelStatuses[m] === 'ok' ? '✅' : modelStatuses[m] === 'error' ? '❌' : '';
-        item.innerHTML = `<span>${m}</span> <span>${status}</span>`;
+        const isErr = modelStatuses[m] === 'error';
+        item.className = `model-item ${m === selectedModel ? 'active' : ''}${isErr ? ' model-item-err' : ''}`;
+        const status = modelStatuses[m] === 'ok' ? '✅' : isErr ? '❌' : '';
+        item.innerHTML = `<span${isErr ? ' style="text-decoration:line-through; opacity:0.5;"' : ''}>${m}</span> <span>${status}</span>`;
         item.onclick = () => { selectedModel = m; $("modelBtn").textContent = m + " ▼"; $("modelMenu").classList.remove("show"); };
         $("modelMenu").appendChild(item);
       });
@@ -529,7 +551,8 @@
     if (!currentUser) return;
     if (Date.now() - modelsCacheTime < 45000) return;
     modelsCacheTime = Date.now();
-    modelStatuses = {}; renderModelsMenu();
+    // НЕ сбрасываем modelStatuses — ошибки копятся между пингами
+    renderModelsMenu();
     const allModels = Object.values(MODELS).flat();
     await Promise.allSettled(allModels.map((m, i) => new Promise(resolve => setTimeout(async () => {
       try {
@@ -538,7 +561,12 @@
           headers: { "Content-Type": "application/json", "x-user": currentUser.username },
           body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }], enableTools: false })
         });
-        modelStatuses[m] = res.ok ? 'ok' : 'error';
+        if (res.ok) {
+          // Не сбрасываем ранее выявленную ошибку
+          if (modelStatuses[m] !== 'error') modelStatuses[m] = 'ok';
+        } else {
+          modelStatuses[m] = 'error';
+        }
       } catch { modelStatuses[m] = 'error'; }
       renderModelsMenu(); resolve();
     }, i * 120))));
@@ -970,7 +998,9 @@
       if (token !== sendToken) return;
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error?.message || `Ошибка ${res.status}`);
+        const e = new Error(extractErrMsg(data?.error?.message || data?.error || `Ошибка ${res.status}`));
+        e.status = res.status;
+        throw e;
       }
 
       if (currentUser.role === "user") {
@@ -1010,10 +1040,14 @@
               toolStatus = parsed.name === "web_search" ? `✅ Найдено` : `✅ Загружено`;
               updateBubbleUI();
             } else if (parsed.type === "error") {
-              throw new Error(parsed.message || "Ошибка сервера");
+              const e = new Error(extractErrMsg(parsed.message || "Ошибка сервера"));
+              e.status = parsed.status;
+              e.code = parsed.code;
+              throw e;
             }
           } catch (e) {
-            if (e.message && e.message !== "Unexpected end of JSON input") throw e;
+            if (e.status || e.code) throw e;
+            // иначе — неполный JSON, продолжаем
           }
         }
       }
@@ -1034,7 +1068,7 @@
       await syncChats();
       renderHistory();
 
-      // AI title (fire-and-forget)
+      // AI-название (fire-and-forget) — только после первого обмена
       if (myMessages.length === 2 && !chats[chatIdAtSend].titleGenerated) {
         autoTitleChat(chatIdAtSend);
       }
@@ -1056,8 +1090,33 @@
           renderHistory();
         } else if (msgDiv) msgDiv.remove();
       } else {
-        if (bubble) bubble.innerHTML = `<span style="color:var(--error)">Ошибка: ${escapeHtml(err.message)}</span>`;
-        toast(err.message, "error");
+        const rawMsg = extractErrMsg(err.message || "Ошибка");
+        const cleanMsg = rawMsg.replace(/^Ошибка:\s*/i, "").trim() || "Ошибка";
+
+        const modelDown = isModelUnavailable(cleanMsg) || err.status === 404 || err.status === 400;
+        if (modelDown) {
+          modelStatuses[selectedModel] = "error";
+          renderModelsMenu();
+          const brokenModel = selectedModel;
+          if (bubble) {
+            bubble.innerHTML =
+              `<div style="padding:10px 14px; border:1px solid var(--error); border-radius:10px; background:rgba(239,68,68,0.08); color:#fecaca;">` +
+                `<div style="font-weight:600; margin-bottom:4px;">⚠ Модель <code style="background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">${escapeHtml(brokenModel)}</code> недоступна</div>` +
+                `<div style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">Открой список моделей внизу справа и выбери другую.</div>` +
+                `<button onclick="document.getElementById('modelBtn').click()" style="background:var(--accent); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-family:var(--font);">Выбрать модель</button>` +
+              `</div>`;
+          }
+          toast(`Модель ${brokenModel} недоступна — выбери другую`, "error");
+        } else {
+          if (bubble) bubble.innerHTML = `<span style="color:var(--error)">Ошибка: ${escapeHtml(cleanMsg)}</span>`;
+          toast(cleanMsg, "error");
+        }
+
+        // Сохраняем user-сообщение, чтобы можно было регенерировать
+        if (!chats[chatIdAtSend]) chats[chatIdAtSend] = { title: text.slice(0, 40), titleGenerated: false, messages: [] };
+        chats[chatIdAtSend].messages = myMessages;
+        try { await syncChats(); } catch {}
+        renderHistory();
       }
     } finally {
       clearTimeout(hardReset);
@@ -1131,7 +1190,7 @@
     rec.onerror = (e) => { toast("Микрофон: " + e.error, "error"); };
     voiceBtn.onclick = () => {
       if (recording) { try { rec.stop(); } catch {} }
-      else { try { rec.start(); } catch (e) { toast("Не удалось запустить микрофон", "error"); } }
+      else { try { rec.start(); } catch { toast("Не удалось запустить микрофон", "error"); } }
     };
   }
 
