@@ -13,6 +13,10 @@
   }
   * { box-sizing: border-box; }
   html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; overflow: hidden; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #334155; }
 
   #authScreen { position: fixed; inset: 0; background: var(--bg-main); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
   .auth-box { background: var(--bg-panel); padding: 24px; border-radius: 16px; border: 1px solid var(--border); width: 100%; max-width: 360px; text-align: center; }
@@ -29,7 +33,7 @@
   .mobile-header { display: none; background: var(--bg-sidebar); padding: 12px 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: absolute; top:0; left:0; right:0; z-index: 50; }
   .hamburger { background: none; border: none; color: white; cursor: pointer; font-size: 20px; }
   .close-sidebar-btn { display: none; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; align-self: flex-end; margin-bottom: -10px; padding: 10px; }
-  
+
   @media (max-width: 768px) {
     .sidebar { position: absolute; height: 100%; transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); }
@@ -39,43 +43,70 @@
     .chat-inner { padding: 10px; }
   }
 
-  .new-chat-btn { margin: 16px; padding: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); cursor: pointer; }
-  .chat-history { flex: 1; overflow-y: auto; padding: 0 16px; }
-  .history-item { padding: 10px; border-radius: 6px; color: var(--text-main); cursor: pointer; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .new-chat-btn { margin: 16px; padding: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); cursor: pointer; transition: 0.2s; }
+  .new-chat-btn:hover { background: var(--bg-input); }
+  .chat-search { margin: 0 16px 8px; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: white; outline: none; font-size: 13px; }
+  .chat-search:focus { border-color: var(--accent); }
+  .chat-history { flex: 1; overflow-y: auto; padding: 0 8px 0 16px; }
+  .history-item { padding: 10px; padding-right: 30px; border-radius: 6px; color: var(--text-main); cursor: pointer; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; transition: 0.15s; }
   .history-item:hover, .history-item.active { background: var(--bg-input); }
+  .history-item.active { border-left: 2px solid var(--accent); }
+  .history-item .del-chat { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; opacity: 0; transition: 0.15s; width: 20px; height: 20px; border-radius: 4px; }
+  .history-item:hover .del-chat { opacity: 1; }
+  .history-item .del-chat:hover { color: var(--error); background: rgba(239,68,68,0.1); }
+  .empty-state { color: var(--text-muted); text-align: center; padding: 20px; font-size: 13px; }
   .sidebar-footer { padding: 16px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
   .btn-admin { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); padding: 8px; border-radius: 6px; cursor: pointer; width: 100%; }
 
   .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; position: relative; }
-  .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 20px; }
+  .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 20px; position: relative; }
   .chat-inner { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-  .message { display: flex; flex-direction: column; font-size: 15px; line-height: 1.6; }
+  .welcome { text-align: center; margin-top: 12vh; padding: 0 10px; }
+  .welcome-logo { font-size: 42px; color: var(--accent); margin-bottom: 8px; }
+  .welcome h1 { margin: 8px 0 24px; font-size: 28px; }
+  .welcome p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+  .suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; max-width: 640px; margin: 0 auto; }
+  .suggestion { padding: 14px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; color: var(--text-main); cursor: pointer; text-align: left; font-size: 13px; transition: 0.2s; }
+  .suggestion:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .message { display: flex; flex-direction: column; font-size: 15px; line-height: 1.6; position: relative; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .message.user { align-items: flex-end; }
   .message.user .bubble { background: var(--user-bubble); padding: 12px 18px; border-radius: 20px; border-bottom-right-radius: 4px; max-width: 90%; white-space: pre-wrap; }
   .message.assistant { align-items: flex-start; }
   .message.assistant .bubble { width: 100%; word-wrap: break-word; }
 
+  .msg-actions { display: flex; gap: 4px; margin-top: 4px; opacity: 0; transition: 0.15s; }
+  .message:hover .msg-actions { opacity: 1; }
+  .msg-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .msg-actions button:hover { background: var(--bg-input); color: var(--accent); }
+
   details.thought-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
   details.thought-box summary { padding: 10px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
   details.thought-box .thought-content { padding: 14px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); font-family: monospace; white-space: pre-wrap; }
-  
+
   .code-block { background: var(--code-bg); border-radius: 8px; overflow: hidden; margin: 12px 0; border: 1px solid var(--border); }
   .code-header { display: flex; justify-content: space-between; background: #1e293b; padding: 8px 14px; font-size: 12px; color: var(--text-muted); }
   .copy-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; }
   .code-block pre { margin: 0; padding: 14px; overflow-x: auto; color: #e2e8f0; font-family: monospace; font-size: 13px; }
+  .bubble h1, .bubble h2, .bubble h3 { margin: 10px 0 6px; }
+  .bubble h1 { font-size: 1.4em; } .bubble h2 { font-size: 1.2em; } .bubble h3 { font-size: 1.05em; }
+  .bubble ul { margin: 6px 0; padding-left: 22px; }
+  .bubble blockquote { border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px; color: var(--text-muted); }
+  .bubble a { color: var(--accent); }
 
   .input-wrapper { padding: 16px; background: linear-gradient(transparent, var(--bg-main) 20%); }
   .input-box { width: 100%; max-width: 800px; margin: 0 auto; background: var(--bg-input); border: 1px solid var(--border); border-radius: 16px; padding: 12px; }
   .input-box:focus-within { border-color: var(--accent); }
   .input-row { display: flex; gap: 10px; align-items: flex-end; }
-  textarea { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 16px; resize: none; outline: none; max-height: 150px; }
+  textarea { flex: 1; background: transparent; border: none; color: var(--text-main); font-size: 16px; resize: none; outline: none; max-height: 150px; min-height: 24px; }
   .tools { display: flex; justify-content: space-between; margin-top: 10px; align-items: center; flex-wrap: wrap; gap: 8px; }
-  
+
   .left-tools { display: flex; gap: 8px; flex-wrap: wrap; }
   .toggle-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 20px; padding: 4px 10px; cursor: pointer; font-size: 13px; transition: 0.2s; }
   .toggle-btn.active { color: var(--accent); border-color: var(--accent); }
-  
+
   .send-btn { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .send-btn:disabled { background: #1e293b; color: #475569; }
@@ -93,13 +124,13 @@
 
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
   .modal-content { background: var(--bg-panel); width: 100%; max-width: 800px; border-radius: 12px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; }
-  
+
   .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
   .admin-table th, .admin-table td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
   .admin-table th { cursor: pointer; user-select: none; transition: 0.2s; }
   .admin-table th:hover { color: var(--accent); }
   .admin-table th span { font-size: 10px; margin-left: 4px; color: var(--text-muted); }
-  
+
   .admin-btn { padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; color: white; margin-right: 4px; }
   .btn-save { background: var(--accent); }
   .btn-block { background: var(--error); }
@@ -110,9 +141,24 @@
   .forge-input select { width: 120px; background: var(--bg-input); color: white; border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
   .forge-input input { flex: 1; background: var(--bg-input); color: white; border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
 
+  .scroll-btn { position: absolute; bottom: 100px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-main); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; font-size: 18px; z-index: 10; transition: 0.2s; }
+  .scroll-btn.visible { display: flex; }
+  .scroll-btn:hover { background: var(--bg-input); border-color: var(--accent); }
+
+  .toast { position: fixed; top: 20px; right: 20px; padding: 12px 18px; border-radius: 10px; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-main); font-size: 14px; z-index: 10000; transform: translateX(120%); transition: transform 0.3s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-width: 320px; }
+  .toast.show { transform: translateX(0); }
+  .toast-success { border-color: var(--success); }
+  .toast-error { border-color: var(--error); color: #fecaca; }
+
+  .low-limit { color: var(--error) !important; font-weight: 600; }
+
   @keyframes spin { 100% { transform: rotate(360deg); } }
-  .typing-cursor::after { content: "▋"; animation: blink 1s infinite; color: var(--accent); }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .typing-dots { display: inline-flex; gap: 3px; padding: 4px 0; }
+  .typing-dots span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
 </style>
 </head>
 <body>
@@ -150,6 +196,7 @@
   <aside class="sidebar" id="sidebar">
     <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
     <button class="new-chat-btn" id="newChatBtn" style="margin-top: 10px;">+ Новый чат</button>
+    <input type="text" id="chatSearch" class="chat-search" placeholder="Поиск по чатам...">
     <div class="chat-history" id="chatHistory"></div>
     <div class="sidebar-footer">
       <div id="userDisplay" style="font-weight:bold; color:var(--accent);">Гость</div>
@@ -162,11 +209,21 @@
   <main class="main-content">
     <div class="chat-container" id="chatContainer" style="margin-top: 50px;">
       <div class="chat-inner" id="chatInner">
-        <div style="text-align: center; margin-top: 15vh;" id="welcomeScreen">
+        <div id="welcomeScreen" class="welcome">
+          <div class="welcome-logo">✦</div>
           <h1>Чем помочь?</h1>
+          <p>Быстрые старты:</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Объясни коротко, что такое SAMP">🎮 Что такое SAMP?</button>
+            <button class="suggestion" data-prompt="Напиши пример скрипта на Pawn для телепорта игрока">📜 Скрипт на Pawn</button>
+            <button class="suggestion" data-prompt="Как оптимизировать запросы к MySQL в SAMP-сервере?">⚡ Оптимизация MySQL</button>
+            <button class="suggestion" data-prompt="Как защитить SAMP-сервер от DDoS-атак?">🛡️ Защита от DDoS</button>
+          </div>
         </div>
       </div>
     </div>
+
+    <button class="scroll-btn" id="scrollBottomBtn" onclick="scrollToBottom()">↓</button>
 
     <div class="input-wrapper">
       <div class="input-box">
@@ -179,7 +236,6 @@
             <button class="toggle-btn" id="thinkToggle">Раздумие</button>
             <button class="toggle-btn" id="searchToggle">Поиск</button>
           </div>
-          
           <div class="model-selector" id="modelSelector">
             <button id="modelBtn" class="model-btn">qwen3.8-omni-flash ▼</button>
             <div class="model-menu" id="modelMenu"></div>
@@ -212,14 +268,11 @@
   <div id="chatViewerModal" class="modal">
     <div class="modal-content">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">Чаты пользователя: <span id="viewerUsername" style="color:var(--accent)"></span></h3>
+        <h3 style="margin:0;">Чаты: <span id="viewerUsername" style="color:var(--accent)"></span></h3>
         <button onclick="closeChatViewer()" style="background:none; border:none; color:white; cursor:pointer; font-size:18px;">✕</button>
       </div>
-      
       <select id="viewerChatSelect" onchange="loadSpecificChat()" style="margin-top:10px; padding:8px; background:var(--bg-input); color:white; border:1px solid var(--border); border-radius:4px;"></select>
-      
       <div class="chat-view-box" id="viewerMessages"></div>
-
       <div class="forge-input">
         <select id="forgeRole">
           <option value="user">От Юзера</option>
@@ -240,13 +293,24 @@
   let isBusy = false;
   let abortController = null;
   let useThink = false, useSearch = false, selectedModel = "qwen3.8-omni-flash";
-  let modelStatuses = {}; 
-  
+  let modelStatuses = {};
+  let modelsCacheTime = 0;
+
   let adminUsersData = {};
   let adminSortField = 'name';
   let adminSortAsc = true;
 
-  // --- ЗАЩИТА ОТ СТАРЫХ/БИТЫХ ЧАТОВ ---
+  // ---------- TOAST ----------
+  function toast(msg, type = "info") {
+    const el = document.createElement("div");
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 400); }, 3200);
+  }
+
+  // ---------- ЗАГРУЗКА ЧАТОВ ----------
   try {
     let rawChats = JSON.parse(localStorage.getItem("samp_chats") || "{}");
     chats = {};
@@ -256,21 +320,14 @@
           title: rawChats[id].title || "Чат",
           messages: rawChats[id].messages.map(m => {
             let c = m.content;
-            if (Array.isArray(c)) {
-              let t = c.find(x => x.type === "text");
-              c = t ? t.text : "(вложение)";
-            }
+            if (Array.isArray(c)) { const t = c.find(x => x.type === "text"); c = t ? t.text : "(вложение)"; }
             if (typeof c !== "string") c = String(c || "");
-            return { role: m.role, content: c, thought: m.thought };
+            return { role: m.role, content: c, thought: m.thought || null };
           })
         };
       }
     }
-    localStorage.setItem("samp_chats", JSON.stringify(chats));
-  } catch(e) {
-    chats = {};
-    localStorage.removeItem("samp_chats");
-  }
+  } catch (e) { chats = {}; localStorage.removeItem("samp_chats"); }
 
   const MODELS = {
     "Tier C": ["qwen3.8-omni-flash", "deepseek-v4-pro", "deepseek-v4.1-flash", "glm-5.3", "glm-5.3-flash", "glm-5.3-prime", "kimi-k3", "deepseek-v4.1-flash-1017"],
@@ -281,35 +338,69 @@
   const $ = id => document.getElementById(id);
   const chatContainer = $("chatContainer"), chatInner = $("chatInner"), input = $("input"), sendBtn = $("sendBtn");
 
+  function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  // ---------- AUTH ----------
   function switchAuth(type) {
     if (type === 'login') { $("tabLogin").classList.add("active"); $("tabRegister").classList.remove("active"); $("loginForm").style.display = "block"; $("registerForm").style.display = "none"; }
     else { $("tabLogin").classList.remove("active"); $("tabRegister").classList.add("active"); $("loginForm").style.display = "none"; $("registerForm").style.display = "block"; }
   }
 
   async function doLogin() {
-    const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: $("loginUser").value.trim(), password: $("loginPass").value, action: "login" }) });
-    const data = await res.json(); if (!res.ok) return alert(data.error);
-    finishLogin(data);
+    try {
+      const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: $("loginUser").value.trim(), password: $("loginPass").value, action: "login" }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return toast(data.error || "Ошибка входа", "error");
+      await finishLogin(data);
+    } catch (e) { toast("Сервер недоступен", "error"); }
   }
 
   async function doRegister() {
-    const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: $("regUser").value.trim(), password: $("regPass").value, email: $("regEmail").value.trim(), action: "register" }) });
-    const data = await res.json(); if (!res.ok) return alert(data.error);
-    finishLogin(data);
+    try {
+      const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: $("regUser").value.trim(), password: $("regPass").value, email: $("regEmail").value.trim(), action: "register" }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return toast(data.error || "Ошибка регистрации", "error");
+      await finishLogin(data);
+    } catch (e) { toast("Сервер недоступен", "error"); }
   }
 
-  function finishLogin(data) {
-    currentUser = data; localStorage.setItem("samp_user", JSON.stringify(currentUser));
-    $("authScreen").style.display = "none"; $("userDisplay").textContent = currentUser.username;
-    $("limitDisplay").textContent = currentUser.role === "user" ? `Сообщений: ${currentUser.limit}` : `Роль: ${currentUser.role}`;
+  async function finishLogin(data) {
+    currentUser = data;
+    localStorage.setItem("samp_user", JSON.stringify(currentUser));
+    $("authScreen").style.display = "none";
+    $("userDisplay").textContent = currentUser.username;
+    updateLimitUI();
     if (currentUser.role === "admin") $("adminBtn").style.display = "block";
-    
-    // Принудительный сброс загрузки
+
+    // Подтягиваем чаты с сервера
+    try {
+      const res = await fetch("/api/chats", { headers: { "x-user": currentUser.username } });
+      if (res.ok) {
+        const serverChats = await res.json();
+        if (serverChats && typeof serverChats === "object") {
+          for (const id in serverChats) chats[id] = serverChats[id];
+          localStorage.setItem("samp_chats", JSON.stringify(chats));
+        }
+      }
+    } catch (e) { /* offline */ }
+
     isBusy = false;
-    if (abortController) abortController.abort();
+    if (abortController) { try { abortController.abort(); } catch (e) {} abortController = null; }
     setBusyUI(false);
-    
     renderHistory();
+  }
+
+  function updateLimitUI() {
+    if (!currentUser) return;
+    const el = $("limitDisplay");
+    if (currentUser.role === "user") {
+      el.textContent = `Сообщений: ${currentUser.limit}`;
+      el.classList.toggle("low-limit", currentUser.limit <= 3);
+      if (currentUser.limit <= 3) el.textContent = `⚠ Сообщений: ${currentUser.limit}`;
+    } else {
+      el.textContent = `Роль: ${currentUser.role}`;
+      el.classList.remove("low-limit");
+    }
   }
 
   function logout() { localStorage.removeItem("samp_user"); location.reload(); }
@@ -323,22 +414,30 @@
   async function syncChats() {
     localStorage.setItem("samp_chats", JSON.stringify(chats));
     if (currentUser) {
-      await fetch("/api/sync-chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: currentUser.username, chats }) });
+      try {
+        await fetch("/api/sync-chats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-user": currentUser.username },
+          body: JSON.stringify({ username: currentUser.username, chats })
+        });
+      } catch (e) { /* offline — не критично */ }
     }
   }
 
+  // ---------- MODELS ----------
   function renderModelsMenu() {
     $("modelMenu").innerHTML = "";
     for (const [tier, models] of Object.entries(MODELS)) {
       let hasVisible = false;
-      const groupDiv = document.createElement("div"); groupDiv.className = "model-group-title"; groupDiv.textContent = tier;
-      
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "model-group-title";
+      groupDiv.textContent = tier;
       models.forEach(m => {
         if (currentUser && currentUser.role === 'user' && modelStatuses[m] === 'error') return;
         if (!hasVisible) { $("modelMenu").appendChild(groupDiv); hasVisible = true; }
-        
-        const item = document.createElement("div"); item.className = `model-item ${m === selectedModel ? 'active' : ''}`;
-        let status = modelStatuses[m] === 'ok' ? '✅' : modelStatuses[m] === 'error' ? '❌' : '';
+        const item = document.createElement("div");
+        item.className = `model-item ${m === selectedModel ? 'active' : ''}`;
+        const status = modelStatuses[m] === 'ok' ? '✅' : modelStatuses[m] === 'error' ? '❌' : '';
         item.innerHTML = `<span>${m}</span> <span>${status}</span>`;
         item.onclick = () => { selectedModel = m; $("modelBtn").textContent = m + " ▼"; $("modelMenu").classList.remove("show"); };
         $("modelMenu").appendChild(item);
@@ -348,27 +447,44 @@
 
   async function pingAllModels() {
     if (!currentUser) return;
+    if (Date.now() - modelsCacheTime < 45000) return; // кеш 45 сек
+    modelsCacheTime = Date.now();
     modelStatuses = {}; renderModelsMenu();
     const allModels = Object.values(MODELS).flat();
     await Promise.allSettled(allModels.map(async (m, i) => {
       return new Promise(resolve => setTimeout(async () => {
         try {
-          const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json", "x-user": currentUser.username }, body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }) });
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-user": currentUser.username },
+            body: JSON.stringify({ model: m, max_tokens: 1, messages: [{ role: "user", content: "ping" }] })
+          });
           modelStatuses[m] = res.ok ? 'ok' : 'error';
         } catch { modelStatuses[m] = 'error'; }
         renderModelsMenu(); resolve();
-      }, i * 100));
+      }, i * 120));
     }));
   }
 
-  $("modelBtn").onclick = (e) => { e.stopPropagation(); const isOpening = !$("modelMenu").classList.contains("show"); $("modelMenu").classList.toggle("show"); if (isOpening) pingAllModels(); };
-  document.addEventListener("click", (e) => { if (!$("modelBtn").contains(e.target)) $("modelMenu").classList.remove("show"); });
+  $("modelBtn").onclick = (e) => {
+    e.stopPropagation();
+    const isOpening = !$("modelMenu").classList.contains("show");
+    $("modelMenu").classList.toggle("show");
+    if (isOpening) pingAllModels();
+  };
+  document.addEventListener("click", (e) => {
+    if (!$("modelBtn").contains(e.target)) $("modelMenu").classList.remove("show");
+  });
 
+  // ---------- ADMIN ----------
   async function openAdminPanel() {
-    const res = await fetch("/api/admin/users"); 
-    adminUsersData = await res.json();
-    renderAdminTable();
-    $("adminModal").style.display = "flex";
+    try {
+      const res = await fetch("/api/admin/users", { headers: { "x-user": currentUser.username } });
+      if (!res.ok) return toast("Нет доступа", "error");
+      adminUsersData = await res.json();
+      renderAdminTable();
+      $("adminModal").style.display = "flex";
+    } catch (e) { toast("Сервер недоступен", "error"); }
   }
 
   function sortAdminTable(field) {
@@ -380,158 +496,310 @@
   function renderAdminTable() {
     const tbody = $("adminUserList"); tbody.innerHTML = "";
     ['name', 'role', 'limit'].forEach(f => { $(`sort-${f}`).textContent = adminSortField === f ? (adminSortAsc ? '▲' : '▼') : ''; });
-
-    let sortedNames = Object.keys(adminUsersData).sort((a, b) => {
+    const sortedNames = Object.keys(adminUsersData).sort((a, b) => {
       let valA, valB;
       if (adminSortField === 'name') { valA = a.toLowerCase(); valB = b.toLowerCase(); }
       else if (adminSortField === 'role') { valA = adminUsersData[a].role; valB = adminUsersData[b].role; }
-      else if (adminSortField === 'limit') { valA = adminUsersData[a].limit; valB = adminUsersData[b].limit; }
-      
+      else { valA = adminUsersData[a].limit; valB = adminUsersData[b].limit; }
       if (valA < valB) return adminSortAsc ? -1 : 1;
       if (valA > valB) return adminSortAsc ? 1 : -1;
       return 0;
     });
-
     for (const name of sortedNames) {
       const data = adminUsersData[name];
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${name}</td>
+        <td>${escapeHtml(name)}</td>
         <td>
-          <select onchange="updateUser('${name}', 'role', this.value)" style="background:var(--bg-input); color:white; border:none; border-radius:4px; padding:4px;">
+          <select onchange="updateUser('${escapeHtml(name)}', 'role', this.value)" style="background:var(--bg-input); color:white; border:none; border-radius:4px; padding:4px;">
             <option value="user" ${data.role==='user'?'selected':''}>User</option>
             <option value="helper" ${data.role==='helper'?'selected':''}>Helper</option>
             <option value="moderator" ${data.role==='moderator'?'selected':''}>Moderator</option>
             <option value="admin" ${data.role==='admin'?'selected':''}>Admin</option>
           </select>
         </td>
-        <td><input type="number" value="${data.limit}" onchange="updateUser('${name}', 'setLimit', this.value)" style="width:60px; background:var(--bg-input); color:white; border:none; border-radius:4px; padding:4px;"></td>
+        <td><input type="number" value="${data.limit}" onchange="updateUser('${escapeHtml(name)}', 'setLimit', this.value)" style="width:60px; background:var(--bg-input); color:white; border:none; border-radius:4px; padding:4px;"></td>
         <td>
-          <button class="admin-btn btn-save" onclick="viewUserChats('${name}')">Чаты</button>
-          <button class="admin-btn btn-block" onclick="updateUser('${name}', 'block', ${!data.blocked})">${data.blocked ? 'Разблок' : 'Блок'}</button>
+          <button class="admin-btn btn-save" onclick="viewUserChats('${escapeHtml(name)}')">Чаты</button>
+          <button class="admin-btn btn-block" onclick="updateUser('${escapeHtml(name)}', 'block', ${!data.blocked})">${data.blocked ? 'Разблок' : 'Блок'}</button>
         </td>`;
       tbody.appendChild(tr);
     }
   }
 
   async function updateUser(u, a, v) {
-    await fetch("/api/admin/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUser: u, action: a, value: v }) });
-    const res = await fetch("/api/admin/users"); adminUsersData = await res.json(); renderAdminTable();
+    try {
+      await fetch("/api/admin/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user": currentUser.username },
+        body: JSON.stringify({ targetUser: u, action: a, value: v })
+      });
+      const res = await fetch("/api/admin/users", { headers: { "x-user": currentUser.username } });
+      adminUsersData = await res.json();
+      renderAdminTable();
+    } catch (e) { toast("Ошибка", "error"); }
   }
   function closeAdminPanel() { $("adminModal").style.display = "none"; }
 
-  let currentViewUser = null;
-  let currentViewChatId = null;
+  let currentViewUser = null, currentViewChatId = null;
 
   async function viewUserChats(username) {
     currentViewUser = username;
     $("viewerUsername").textContent = username;
-    const res = await fetch(`/api/admin/chats/${username}`);
-    const userChats = await res.json();
-    
-    const select = $("viewerChatSelect"); select.innerHTML = "";
-    const sortedChatIds = Object.keys(userChats).sort((a, b) => b - a);
-    
-    for (const id of sortedChatIds) {
-      const opt = document.createElement("option"); opt.value = id; opt.textContent = userChats[id].title;
-      select.appendChild(opt);
-    }
-    
-    if (sortedChatIds.length === 0) {
-      $("viewerMessages").innerHTML = "<div style='color:gray;'>У пользователя нет сохраненных чатов.</div>";
-      currentViewChatId = null;
-    } else {
-      currentViewChatId = sortedChatIds[0];
-      select.value = currentViewChatId;
-      loadSpecificChat();
-    }
-    $("adminModal").style.display = "none";
-    $("chatViewerModal").style.display = "flex";
+    try {
+      const res = await fetch(`/api/admin/chats/${encodeURIComponent(username)}`, { headers: { "x-user": currentUser.username } });
+      const userChats = await res.json();
+      const select = $("viewerChatSelect"); select.innerHTML = "";
+      const sortedChatIds = Object.keys(userChats).sort((a, b) => b - a);
+      for (const id of sortedChatIds) {
+        const opt = document.createElement("option");
+        opt.value = id; opt.textContent = userChats[id].title;
+        select.appendChild(opt);
+      }
+      if (sortedChatIds.length === 0) {
+        $("viewerMessages").innerHTML = "<div class='empty-state'>У пользователя нет сохранённых чатов.</div>";
+        currentViewChatId = null;
+      } else {
+        currentViewChatId = sortedChatIds[0];
+        select.value = currentViewChatId;
+        loadSpecificChat();
+      }
+      $("adminModal").style.display = "none";
+      $("chatViewerModal").style.display = "flex";
+    } catch (e) { toast("Ошибка загрузки", "error"); }
   }
 
   async function loadSpecificChat() {
     currentViewChatId = $("viewerChatSelect").value;
-    const res = await fetch(`/api/admin/chats/${currentViewUser}`);
-    const userChats = await res.json();
-    const msgs = userChats[currentViewChatId]?.messages || [];
-    
-    const box = $("viewerMessages"); box.innerHTML = "";
-    msgs.forEach(m => {
-      let div = document.createElement("div");
-      div.style.cssText = `padding:8px; border-radius:8px; max-width:80%; word-break:break-word; ${m.role === 'user' ? 'align-self:flex-end; background:#2563eb;' : 'align-self:flex-start; background:#374151;'}`;
-      div.textContent = `[${m.role === 'user' ? 'Юзер' : 'ИИ'}]: ${m.content}`;
-      box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
+    try {
+      const res = await fetch(`/api/admin/chats/${encodeURIComponent(currentViewUser)}`, { headers: { "x-user": currentUser.username } });
+      const userChats = await res.json();
+      const msgs = userChats[currentViewChatId]?.messages || [];
+      const box = $("viewerMessages"); box.innerHTML = "";
+      msgs.forEach(m => {
+        const div = document.createElement("div");
+        div.style.cssText = `padding:8px; border-radius:8px; max-width:80%; word-break:break-word; ${m.role === 'user' ? 'align-self:flex-end; background:#2563eb;' : 'align-self:flex-start; background:#374151;'}`;
+        div.textContent = `[${m.role === 'user' ? 'Юзер' : 'ИИ'}]: ${m.content}`;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    } catch (e) { toast("Ошибка", "error"); }
   }
 
   async function forgeMessage() {
-    if (!currentViewChatId) return alert("Нет чата для внедрения");
+    if (!currentViewChatId) return toast("Нет чата для внедрения", "error");
     const role = $("forgeRole").value;
     const text = $("forgeText").value.trim();
     if (!text) return;
-    
-    await fetch("/api/admin/forge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUser: currentViewUser, chatId: currentViewChatId, role, text }) });
-    $("forgeText").value = "";
-    loadSpecificChat();
+    try {
+      await fetch("/api/admin/forge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user": currentUser.username },
+        body: JSON.stringify({ targetUser: currentViewUser, chatId: currentViewChatId, role, text })
+      });
+      $("forgeText").value = "";
+      loadSpecificChat();
+      toast("Сообщение внедрено", "success");
+    } catch (e) { toast("Ошибка", "error"); }
   }
   function closeChatViewer() { $("chatViewerModal").style.display = "none"; $("adminModal").style.display = "flex"; }
 
+  // ---------- ИСТОРИЯ ----------
   function renderHistory() {
-    $("chatHistory").innerHTML = "";
-    if (!chats) return;
-    Object.keys(chats).sort((a,b) => b - a).forEach(id => {
-      const div = document.createElement("div"); div.className = `history-item ${id === currentChatId ? "active" : ""}`;
-      div.textContent = chats[id].title || "Новый чат";
-      div.onclick = () => { 
-        // ПРИНУДИТЕЛЬНЫЙ СБРОС ЗАВИСШЕГО СОСТОЯНИЯ
-        if (abortController) abortController.abort();
+    const list = $("chatHistory");
+    const query = $("chatSearch").value.trim().toLowerCase();
+    list.innerHTML = "";
+    const ids = Object.keys(chats).sort((a, b) => b - a).filter(id => {
+      if (!query) return true;
+      return (chats[id].title || "").toLowerCase().includes(query);
+    });
+    if (ids.length === 0) {
+      list.innerHTML = `<div class="empty-state">${query ? "Ничего не найдено" : "История пуста"}</div>`;
+      return;
+    }
+    ids.forEach(id => {
+      const div = document.createElement("div");
+      div.className = `history-item ${id === currentChatId ? "active" : ""}`;
+      div.innerHTML = `<span>${escapeHtml(chats[id].title || "Новый чат")}</span><button class="del-chat" title="Удалить">×</button>`;
+      div.onclick = (e) => {
+        if (e.target.classList.contains("del-chat")) return;
+        if (abortController) { try { abortController.abort(); } catch (er) {} }
         isBusy = false;
         setBusyUI(false);
-
-        currentChatId = id; 
-        currentMessages = [...(chats[id].messages || [])]; 
-        chatInner.innerHTML = ""; 
-        $("welcomeScreen").style.display = "none";
-        
-        try {
-          currentMessages.forEach(msg => renderMessage(msg.role, msg.content, msg.thought, false, true)); 
-        } catch(e) { console.error(e); }
-        
-        renderHistory(); 
-        if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar(); 
+        currentChatId = id;
+        currentMessages = [...(chats[id].messages || [])];
+        renderAllMessages();
+        renderHistory();
+        if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar();
       };
-      $("chatHistory").appendChild(div);
+      div.ondblclick = () => {
+        const t = prompt("Название чата:", chats[id].title || "Новый чат");
+        if (t && t.trim()) {
+          chats[id].title = t.trim().slice(0, 60);
+          syncChats(); renderHistory();
+        }
+      };
+      div.querySelector(".del-chat").onclick = (e) => {
+        e.stopPropagation();
+        if (!confirm("Удалить чат?")) return;
+        delete chats[id];
+        if (id === currentChatId) {
+          currentChatId = Date.now().toString();
+          currentMessages = [];
+          renderAllMessages();
+        }
+        syncChats(); renderHistory();
+      };
+      list.appendChild(div);
     });
   }
 
+  // ---------- РЕНДЕР СООБЩЕНИЙ ----------
   function parseMarkdown(text) {
     if (!text) return "";
-    let safe = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    safe = safe.replace(/```(\w*)\n([\s\S]*?)(?:```|$)/g, (match, lang, code) => `<div class="code-block"><div class="code-header"><span>${lang || 'code'}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText); this.innerText='Copied!'">Copy</button></div><pre><code>${code}</code></pre></div>`);
-    safe = safe.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
-    return safe.replace(/\n/g, "<br>");
+    let safe = escapeHtml(text);
+
+    // Код-блоки → placeholder
+    const codeBlocks = [];
+    safe = safe.replace(/```(\w*)\n([\s\S]*?)(?:```|$)/g, (m, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push(
+        `<div class="code-block"><div class="code-header"><span>${escapeHtml(lang || 'code')}</span>` +
+        `<button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText); this.innerText='Copied!'">Copy</button></div>` +
+        `<pre><code>${code}</code></pre></div>`
+      );
+      return `\x00CODE${idx}\x00`;
+    });
+
+    // Inline
+    safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+               .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+               .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+               .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Построчно: заголовки, списки, blockquote
+    const lines = safe.split("\n");
+    const out = [];
+    let inUl = false;
+    for (const line of lines) {
+      const h = line.match(/^(#{1,3}) (.+)$/);
+      if (h) { if (inUl) { out.push("</ul>"); inUl = false; } out.push(`<h${h[1].length}>${h[2]}</h${h[1].length}>`); continue; }
+      const li = line.match(/^\s*[-*] (.+)$/);
+      if (li) { if (!inUl) { out.push("<ul>"); inUl = true; } out.push(`<li>${li[1]}</li>`); continue; }
+      const bq = line.match(/^&gt; (.+)$/);
+      if (bq) { if (inUl) { out.push("</ul>"); inUl = false; } out.push(`<blockquote>${bq[1]}</blockquote>`); continue; }
+      if (inUl) { out.push("</ul>"); inUl = false; }
+      out.push(line);
+    }
+    if (inUl) out.push("</ul>");
+    safe = out.join("\n");
+
+    // Переводы строк + восстановление код-блоков
+    safe = safe.replace(/\n/g, "<br>");
+    safe = safe.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[i]);
+    return safe;
   }
 
   function renderMessage(role, content, thought = null, isError = false, isHistory = false) {
     $("welcomeScreen").style.display = "none";
-    const msgDiv = document.createElement("div"); msgDiv.className = `message ${role}`;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `message ${role}`;
     let html = "";
-    if (thought) html += `<details class="thought-box"><summary>🤔 Размышления...</summary><div class="thought-content">${thought}</div></details>`;
-    const bubble = document.createElement("div"); bubble.className = "bubble";
-    
-    let textContent = content;
-    if (Array.isArray(content)) {
-      const textPart = content.find(c => c.type === "text");
-      textContent = textPart ? textPart.text : "(вложение)";
+    if (thought) {
+      html += `<details class="thought-box"><summary>🤔 Размышления</summary><div class="thought-content">${escapeHtml(thought)}</div></details>`;
     }
-    
-    bubble.innerHTML = parseMarkdown(textContent);
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = parseMarkdown(content);
     if (isError) bubble.style.color = "var(--error)";
     html += bubble.outerHTML;
-    msgDiv.innerHTML = html; chatInner.appendChild(msgDiv);
-    if (!isHistory) chatContainer.scrollTop = chatContainer.scrollHeight;
+    msgDiv.innerHTML = html;
+    chatInner.appendChild(msgDiv);
+    if (!isHistory) scrollToBottom();
+    return msgDiv;
   }
+
+  function addActions(msgDiv, idx) {
+    if (msgDiv.querySelector(".msg-actions")) return;
+    const msg = currentMessages[idx];
+    if (!msg) return;
+    const actions = document.createElement("div");
+    actions.className = "msg-actions";
+    let btns = `<button data-action="copy" title="Копировать">📋</button>`;
+    if (msg.role === "user") btns += `<button data-action="edit" title="Редактировать">✏️</button>`;
+    if (msg.role === "assistant") btns += `<button data-action="regen" title="Заново">🔄</button>`;
+    actions.innerHTML = btns;
+    msgDiv.appendChild(actions);
+  }
+
+  function renderAllMessages() {
+    chatInner.innerHTML = "";
+    if (currentMessages.length === 0) {
+      chatInner.appendChild($("welcomeScreen"));
+      $("welcomeScreen").style.display = "block";
+      return;
+    }
+    $("welcomeScreen").style.display = "none";
+    currentMessages.forEach((msg, i) => {
+      const div = renderMessage(msg.role, msg.content, msg.thought, false, true);
+      div.dataset.index = i;
+      addActions(div, i);
+    });
+    scrollToBottom();
+  }
+
+  // ---------- ДЕЙСТВИЯ С СООБЩЕНИЯМИ ----------
+  chatInner.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const msgDiv = btn.closest(".message");
+    const idx = parseInt(msgDiv.dataset.index, 10);
+    const action = btn.dataset.action;
+    if (action === "copy") {
+      const msg = currentMessages[idx];
+      if (msg) { navigator.clipboard.writeText(msg.content); toast("Скопировано", "success"); }
+    } else if (action === "edit") {
+      editMessage(idx);
+    } else if (action === "regen") {
+      regenMessage(idx);
+    }
+  });
+
+  function editMessage(idx) {
+    if (isBusy) return toast("Подождите завершения ответа", "error");
+    const msg = currentMessages[idx];
+    if (!msg || msg.role !== "user") return;
+    input.value = msg.content;
+    input.dispatchEvent(new Event("input"));
+    currentMessages = currentMessages.slice(0, idx);
+    if (chats[currentChatId]) chats[currentChatId].messages = currentMessages;
+    syncChats();
+    renderAllMessages();
+    renderHistory();
+    input.focus();
+  }
+
+  async function regenMessage(idx) {
+    if (isBusy) return toast("Подождите завершения ответа", "error");
+    const userMsg = currentMessages[idx - 1];
+    if (!userMsg || userMsg.role !== "user") return;
+    const text = userMsg.content;
+    currentMessages = currentMessages.slice(0, idx - 1);
+    if (chats[currentChatId]) chats[currentChatId].messages = currentMessages;
+    renderAllMessages();
+    input.value = text;
+    input.dispatchEvent(new Event("input"));
+    await sendMessage();
+  }
+
+  // ---------- UI STATE ----------
+  function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
+  function isNearBottom() {
+    return chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
+  }
+  chatContainer.addEventListener("scroll", () => {
+    $("scrollBottomBtn").classList.toggle("visible", !isNearBottom());
+  });
 
   function setBusyUI(busy) {
     isBusy = busy;
@@ -539,23 +807,35 @@
     else { sendBtn.disabled = input.value.trim() === ""; sendBtn.classList.remove("stop-mode"); sendBtn.textContent = "➤"; }
   }
 
+  // ---------- ОТПРАВКА ----------
   async function sendMessage() {
     const text = input.value.trim();
     if (!text || isBusy || !currentUser) return;
-    if (currentUser.role === "user" && currentUser.limit <= 0) return alert("Лимит исчерпан.");
+    if (currentUser.role === "user" && currentUser.limit <= 0) return toast("Лимит исчерпан", "error");
 
     setBusyUI(true);
-    currentMessages.push({ role: "user", content: text });
-    renderMessage("user", text);
-    input.value = ""; 
-    
-    const msgDiv = document.createElement("div"); msgDiv.className = "message assistant";
-    const bubble = document.createElement("div"); bubble.className = "bubble"; bubble.innerHTML = '<span class="typing-cursor"></span>';
-    msgDiv.appendChild(bubble); chatInner.appendChild(msgDiv); chatContainer.scrollTop = chatContainer.scrollHeight;
+    const userMsg = { role: "user", content: text };
+    currentMessages.push(userMsg);
+    const userDiv = renderMessage("user", text);
+    userDiv.dataset.index = currentMessages.length - 1;
+    addActions(userDiv, currentMessages.length - 1);
+
+    input.value = "";
+    input.style.height = "auto";
+
+    // Пустой ассистент с анимацией
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
+    msgDiv.appendChild(bubble);
+    chatInner.appendChild(msgDiv);
+    scrollToBottom();
 
     let systemPrompt = "";
     if (useThink) systemPrompt += "Оберни размышления в теги <thought>...</thought>. ";
-    if (useSearch) systemPrompt += "Поиск в интернете. "; // Сервер запустит поиск
+    if (useSearch) systemPrompt += "Поиск в интернете. ";
 
     const payload = { model: selectedModel, max_tokens: 4096, messages: currentMessages, stream: true };
     if (systemPrompt) payload.system = systemPrompt;
@@ -564,69 +844,153 @@
     let fullText = "";
 
     try {
-      const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json", "x-user": currentUser.username }, body: JSON.stringify(payload), signal: abortController.signal });
-      if (!res.ok) throw new Error((await res.json()).error?.message || "Ошибка");
-      
-      if (currentUser.role === "user") { currentUser.limit--; $("limitDisplay").textContent = `Сообщений: ${currentUser.limit}`; localStorage.setItem("samp_user", JSON.stringify(currentUser)); }
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user": currentUser.username },
+        body: JSON.stringify(payload),
+        signal: abortController.signal
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || "Ошибка сервера");
+      }
 
-      const reader = res.body.getReader(); const decoder = new TextDecoder();
+      if (currentUser.role === "user") {
+        currentUser.limit--;
+        updateLimitUI();
+        localStorage.setItem("samp_user", JSON.stringify(currentUser));
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
       let buffer = "";
+      let firstChunk = true;
 
       while (true) {
-        const { done, value } = await reader.read(); if (done) break;
+        const { done, value } = await reader.read();
+        if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n"); buffer = lines.pop();
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-            const dStr = line.slice(6).trim(); if (dStr === "[DONE]") continue;
+            const dStr = line.slice(6).trim();
+            if (dStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(dStr);
               if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+                if (firstChunk) { bubble.innerHTML = ""; firstChunk = false; }
                 fullText += parsed.delta.text;
                 let thought = null, answer = fullText;
                 const match = fullText.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/);
                 if (match) { thought = match[1].trim(); answer = fullText.replace(match[0], "").trim(); }
-                bubble.innerHTML = (thought ? `<details class="thought-box" open><summary>🤔 Размышляет...</summary><div class="thought-content">${thought}</div></details>` : "") + parseMarkdown(answer) + '<span class="typing-cursor"></span>';
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                bubble.innerHTML =
+                  (thought ? `<details class="thought-box" open><summary>🤔 Размышляет...</summary><div class="thought-content">${escapeHtml(thought)}</div></details>` : "") +
+                  parseMarkdown(answer) + '<span class="typing-dots" style="display:inline-flex;"><span></span><span></span><span></span></span>';
+                if (isNearBottom()) scrollToBottom();
               }
-            } catch(e) {}
+            } catch (er) { /* ignore */ }
           }
         }
       }
 
-      bubble.innerHTML = bubble.innerHTML.replace('<span class="typing-cursor"></span>', '');
-      currentMessages.push({ role: "assistant", content: fullText });
-      if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 30), messages: [] };
+      // Финализация: разделяем content и thought
+      const match = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
+      const thought = match ? match[1].trim() : null;
+      const answer = match ? fullText.replace(/<thought>[\s\S]*?<\/thought>/, "").trim() : fullText;
+
+      const finalMsg = { role: "assistant", content: answer, thought };
+      currentMessages.push(finalMsg);
+
+      // Перерисовываем финальное сообщение
+      msgDiv.remove();
+      const finalDiv = renderMessage("assistant", answer, thought, false, true);
+      finalDiv.dataset.index = currentMessages.length - 1;
+      addActions(finalDiv, currentMessages.length - 1);
+      if (isNearBottom()) scrollToBottom();
+
+      if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 40), messages: [] };
       chats[currentChatId].messages = currentMessages;
-      await syncChats(); renderHistory();
+      await syncChats();
+      renderHistory();
 
     } catch (err) {
-      if (abortController.signal.aborted) {
-        bubble.innerHTML = bubble.innerHTML.replace('<span class="typing-cursor"></span>', '') + ' <span style="color:gray;font-size:12px;">[Остановлено]</span>';
-        if (fullText) { currentMessages.push({ role: "assistant", content: fullText }); if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 30), messages: [] }; chats[currentChatId].messages = currentMessages; await syncChats(); renderHistory(); }
-        else msgDiv.remove();
+      if (abortController?.signal.aborted) {
+        bubble.innerHTML = (fullText ? parseMarkdown(fullText) : "") + ' <span style="color:gray;font-size:12px;">[Остановлено]</span>';
+        const m = fullText.match(/<thought>([\s\S]*?)<\/thought>/);
+        if (fullText) {
+          const ans = m ? fullText.replace(/<thought>[\s\S]*?<\/thought>/, "").trim() : fullText;
+          currentMessages.push({ role: "assistant", content: ans, thought: m ? m[1].trim() : null });
+          if (!chats[currentChatId]) chats[currentChatId] = { title: text.slice(0, 40), messages: [] };
+          chats[currentChatId].messages = currentMessages;
+          await syncChats(); renderHistory();
+        } else {
+          msgDiv.remove();
+        }
       } else {
-        bubble.innerHTML = `<span style="color:var(--error)">Ошибка: ${err.message}</span>`;
+        bubble.innerHTML = `<span style="color:var(--error)">Ошибка: ${escapeHtml(err.message)}</span>`;
+        toast(err.message, "error");
       }
-    } finally { setBusyUI(false); abortController = null; }
+    } finally {
+      setBusyUI(false);
+      abortController = null;
+    }
   }
 
-  input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 150) + "px"; if(!isBusy) sendBtn.disabled = input.value.trim() === ""; });
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (isBusy) abortController?.abort(); else if (!sendBtn.disabled) sendMessage(); } });
+  // ---------- EVENT LISTENERS ----------
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 150) + "px";
+    if (!isBusy) sendBtn.disabled = input.value.trim() === "";
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (isBusy) abortController?.abort();
+      else if (!sendBtn.disabled) sendMessage();
+    }
+  });
   sendBtn.onclick = () => { if (isBusy) abortController?.abort(); else sendMessage(); };
-  
+
   $("thinkToggle").onclick = (e) => { useThink = !useThink; e.currentTarget.classList.toggle("active", useThink); };
   $("searchToggle").onclick = (e) => { useSearch = !useSearch; e.currentTarget.classList.toggle("active", useSearch); };
 
   $("newChatBtn").onclick = () => {
-    if (isBusy) { if(abortController) abortController.abort(); isBusy = false; setBusyUI(false); }
-    currentChatId = Date.now().toString(); currentMessages = [];
-    chatInner.innerHTML = ""; chatInner.appendChild($("welcomeScreen")); $("welcomeScreen").style.display = "block";
-    input.value = ""; setBusyUI(false); renderHistory();
+    if (isBusy) { if (abortController) abortController.abort(); isBusy = false; setBusyUI(false); }
+    currentChatId = Date.now().toString();
+    currentMessages = [];
+    renderAllMessages();
+    input.value = "";
+    input.style.height = "auto";
+    setBusyUI(false);
+    renderHistory();
     if (window.innerWidth <= 768 && $("sidebar").classList.contains("open")) toggleSidebar();
   };
 
+  $("chatSearch").addEventListener("input", renderHistory);
+
+  // Suggest cards
+  document.addEventListener("click", (e) => {
+    const s = e.target.closest(".suggestion");
+    if (!s) return;
+    input.value = s.dataset.prompt;
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); $("newChatBtn").click(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === "/") { e.preventDefault(); input.focus(); }
+    else if (e.key === "Escape") {
+      $("adminModal").style.display = "none";
+      $("chatViewerModal").style.display = "none";
+      $("modelMenu").classList.remove("show");
+    }
+  });
+
+  // Bootstrap
   if (currentUser) finishLogin(currentUser);
 </script>
 </body>
